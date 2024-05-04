@@ -35,8 +35,8 @@ $ npm run test:cov
 
 ```bash
 # build an image
-$ npm run docker-build
+$ npm run docker-build or docker build --tag opodatkuvayco-backend .
 
 # run an image
-$ npm run docker-run
+$ npm run docker-run or docker run -p 3000:3000 opodatkuvayco-backend or docker compose up
 ```
