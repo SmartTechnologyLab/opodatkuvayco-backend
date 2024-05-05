@@ -9,10 +9,10 @@ export class AuthService {
   async validateUser(userInfo: IUser) {
     const users = await this.supabaseService.fetchData('Users');
 
-    const existedUser = users.find((user) => user.email === userInfo.email);
+    const usersMap = new Map(users.map((user) => [user.email, user]));
 
-    if (existedUser) {
-      return existedUser;
+    if (usersMap.has(userInfo.email)) {
+      return usersMap.get(userInfo.email);
     }
 
     const newUser = await this.supabaseService.insertData('Users', userInfo);
