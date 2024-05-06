@@ -26,6 +26,29 @@ export class SupabaseService {
     }
   }
 
+  async findData(table: string, findParam: string, findValue: string) {
+    try {
+      const { data, error } = await this.supabase
+        .from(table)
+        .select('*')
+        .eq(findParam, findValue);
+
+      if (error) {
+        console.error(error);
+        throw new Error('Failed while finding data: ' + error.message);
+      }
+
+      if (data && data.length > 0) {
+        return data[0];
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error(error);
+      throw new Error('Failed while finding data: ' + error.message);
+    }
+  }
+
   async insertData<T>(tableName: string, data: T) {
     try {
       const { error } = await this.supabase.from(tableName).insert(data);
