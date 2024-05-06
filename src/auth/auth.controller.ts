@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Redirect, Req, UseGuards } from '@nestjs/common';
 import { GoogleAuthGuard } from './utils/Guards';
 import { Request } from 'express';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -21,8 +21,9 @@ export class AuthController {
     status: 401,
     description: 'Failed to initiate Google authentication',
   })
+  @Redirect()
   getUserAuth() {
-    return { message: 'Google Auth' };
+    return { msg: 'Google Auth' };
   }
 
   @Get('google/redirect')
@@ -32,7 +33,7 @@ export class AuthController {
     description: 'User succesfully got redirected',
   })
   getUserRedirect() {
-    return { message: 'OK' };
+    return { msg: 'Success' };
   }
 
   @Get('userInfo')

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Profile, Strategy } from 'passport-google-oauth20';
 import { AuthService } from '../auth.service';
@@ -15,11 +15,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(accessToken: string, refreshToken: string, profile: Profile) {
-    const user = await this.authService.validateUser({
-      displayName: profile.displayName,
-      email: profile.emails[0].value,
-    });
+    try {
+      const user = await this.authService.validateUser({
+        displayName: profile.displayName,
+        email: profile.emails[0].value,
+      });
 
-    return user || null;
+      return user || null;
+    } catch (error) {
+      console.error('Error validating user:', error);
+      throw new UnauthorizedException('Failed to authenticate user');
+    }
   }
 }

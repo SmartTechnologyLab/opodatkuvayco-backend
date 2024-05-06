@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Supabase } from './utils/Supabase';
 import { IUser } from './types/IUser';
+import { SupabaseService } from 'src/supabase/supabase.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly supabaseService: Supabase) {}
+  constructor(private readonly supabaseService: SupabaseService) {}
 
   async validateUser(userInfo: IUser) {
     const users = await this.supabaseService.fetchData('Users');
@@ -15,9 +15,15 @@ export class AuthService {
       return usersMap.get(userInfo.email);
     }
 
-    const newUser = await this.supabaseService.insertData('Users', userInfo);
+    await this.supabaseService.insertData('Users', userInfo);
 
-    return newUser;
+    const updatedUsers = await this.supabaseService.fetchData('Users');
+
+    const updatedUsersMap = new Map(
+      updatedUsers.map((user) => [user.email, user]),
+    );
+
+    return updatedUsersMap.get(userInfo.email);
   }
 
   async findUserById(id: string) {
