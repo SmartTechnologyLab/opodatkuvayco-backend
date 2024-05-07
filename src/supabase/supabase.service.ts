@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import {
+  PostgrestResponse,
+  SupabaseClient,
+  createClient,
+} from '@supabase/supabase-js';
 
 @Injectable()
 export class SupabaseService {
@@ -12,20 +16,7 @@ export class SupabaseService {
     );
   }
 
-  async fetchData(table: string) {
-    try {
-      const { data, error } = await this.supabase.from(table).select('*');
-
-      if (error) {
-        throw new Error('Failed to fetch data from the DB' + error.message);
-      }
-
-      return data;
-    } catch (error) {
-      throw new Error('Failed while fetching data' + error);
-    }
-  }
-
+  // Method for getting data from particulary column of table
   async findData(table: string, findParam: string, findValue: string) {
     try {
       const { data, error } = await this.supabase
@@ -49,6 +40,7 @@ export class SupabaseService {
     }
   }
 
+  // Method for setting data to table
   async insertData<T>(tableName: string, data: T) {
     try {
       const { error } = await this.supabase.from(tableName).insert(data);
@@ -58,6 +50,32 @@ export class SupabaseService {
       }
     } catch (error) {
       throw new Error('Failed to set data to DB' + error);
+    }
+  }
+
+  // Method for updating data at table, where:
+  // updateData - data that we want to pass,
+  // filterParam - param of finding entity we want to update
+  // filterValue - entity value for filtering
+  async updateData<T>(
+    tableName: string,
+    updateData: Partial<T>,
+    filterParam: string,
+    filterValue: string,
+  ) {
+    try {
+      const { data, error }: PostgrestResponse<T> = await this.supabase
+        .from(tableName)
+        .update(updateData)
+        .eq(filterParam, filterValue);
+
+      if (error) {
+        throw new Error('Failed while updating the data in DB' + error.message);
+      }
+
+      return data;
+    } catch (error) {
+      throw new Error('Failed to update data in DB' + error);
     }
   }
 }

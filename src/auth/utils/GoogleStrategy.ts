@@ -16,9 +16,12 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
 
   async validate(accessToken: string, refreshToken: string, profile: Profile) {
     try {
+      console.log('Access token', accessToken);
+      console.log('Refresh token', refreshToken);
       const user = await this.authService.validateUser({
         displayName: profile.displayName,
         email: profile.emails[0].value,
+        accessToken,
       });
 
       return user || null;

@@ -9,6 +9,15 @@ export class AuthService {
 
   async validateUser(userInfo: IUser) {
     try {
+      // Updating new access token to DB
+      await this.supabaseService.updateData(
+        TablesName.USERS,
+        { accessToken: userInfo.accessToken },
+        'email',
+        userInfo.email,
+      );
+
+      // Figure out if user exists in DB
       const existingUser = await this.supabaseService.findData(
         TablesName.USERS,
         'email',
@@ -19,6 +28,7 @@ export class AuthService {
         return existingUser;
       }
 
+      // If no user in DB, we set it
       await this.supabaseService.insertData(TablesName.USERS, userInfo);
 
       const newUser = await this.supabaseService.findData(
