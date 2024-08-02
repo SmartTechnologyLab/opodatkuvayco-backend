@@ -3,13 +3,15 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { PassportModule } from '@nestjs/passport';
-import { SupabaseModule } from './supabase/supabase.module';
+import { ReportModule } from './statement/report.module';
+import { CurrencyExchangeModule } from './currencyExchange/currencyExchange.module';
 
 @Module({
   imports: [
     AuthModule,
-    SupabaseModule,
     PassportModule.register({ session: true }),
+    ReportModule,
+    CurrencyExchangeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

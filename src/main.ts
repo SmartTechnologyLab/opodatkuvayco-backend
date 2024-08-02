@@ -5,10 +5,13 @@ import * as dotenv from 'dotenv';
 import * as session from 'express-session';
 import * as passport from 'passport';
 import * as cors from 'cors';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   dotenv.config();
   const app = await NestFactory.create(AppModule);
+  app.use(bodyParser.json({ limit: '50mb' }));
+  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
   app.use(
     cors({
       origin: 'http://localhost:5173',
@@ -22,7 +25,7 @@ async function bootstrap() {
       saveUninitialized: false,
       resave: false,
       cookie: {
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge: 3600000,
         httpOnly: true,
       },
     }),

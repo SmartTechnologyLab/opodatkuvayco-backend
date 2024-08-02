@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { GoogleStrategy } from './utils/GoogleStrategy';
-import { SessionSerilalizer } from './utils/Serializer';
-import { SupabaseService } from 'src/supabase/supabase.service';
+import { SupabaseAuthGuard } from './guards/SupabaseAuthGuard';
+import { SupabaseStrategy } from './guards/SupabaseStrategy';
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, GoogleStrategy, SessionSerilalizer, SupabaseService],
+  providers: [AuthService, SupabaseStrategy, SupabaseAuthGuard],
 })
 export class AuthModule {}
