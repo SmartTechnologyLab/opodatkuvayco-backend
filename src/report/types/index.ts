@@ -12,6 +12,18 @@ export interface ICorporateAction {
   currency: string;
 }
 
+export interface IPosition {
+  i: string;
+  q: number;
+}
+
+export interface IDealReport {
+  total: number;
+  totalTaxFee: number;
+  totalMilitaryFee: number;
+  deals: Deal[];
+}
+
 export interface ITrades {
   trade_id: string;
   date: string;
@@ -31,6 +43,7 @@ export interface IReport {
   };
   trades: {
     detailed: ITrades[];
+    securities: Record<string, number>;
   };
 }
 

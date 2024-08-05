@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { PassportModule } from '@nestjs/passport';
-import { ReportModule } from './statement/report.module';
+import { ReportModule } from './report/report.module';
 import { CurrencyExchangeModule } from './currencyExchange/currencyExchange.module';
 
 @Module({
