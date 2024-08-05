@@ -12,6 +12,7 @@ import { IReport, ITrades } from './types';
 import * as fs from 'fs';
 import * as path from 'path';
 import { sortByDate } from './helpers';
+import { reverse } from 'ramda';
 
 @Controller('report')
 export class ReportController {
@@ -46,23 +47,23 @@ export class ReportController {
         }
       }
 
-      const sortedStatementsByDate: IReport[] = [];
+      const reports: IReport[] = [];
       const dealsToCalculate: ITrades[] = [];
 
       files.forEach((file) => {
-        sortedStatementsByDate.push(this.statementService.readReport(file));
+        reports.push(this.statementService.readReport(file));
       });
 
-      sortByDate(sortedStatementsByDate);
+      const sortedReportsByDate = sortByDate(reports);
+
+      const reversedReports: IReport[] = reverse(sortedReportsByDate);
 
       const remainedDealsMap = new Map<number, ITrades[]>();
 
-      for (const [indx, statement] of Object.entries(
-        sortedStatementsByDate.reverse(),
-      )) {
+      for (const [indx, statement] of Object.entries(reversedReports)) {
         const index = +indx;
 
-        if (index !== sortedStatementsByDate.length - 1) {
+        if (index !== sortedReportsByDate.length - 1) {
           const previousDeals = remainedDealsMap.get(index - 1) || [];
 
           const deals = await this.statementService.getReportExtended(
@@ -78,17 +79,14 @@ export class ReportController {
 
           remainedDealsMap.get(index)?.push(...(deals as ITrades[]));
 
-          if (index === sortedStatementsByDate.length - 2) {
+          if (index === sortedReportsByDate.length - 2) {
             dealsToCalculate.push(...(deals as ITrades[]));
           }
         }
       }
 
       return this.statementService.getReportExtended(
-        [
-          ...dealsToCalculate,
-          ...sortedStatementsByDate.reverse().at(0).trades.detailed,
-        ],
+        [...dealsToCalculate, ...sortedReportsByDate.at(0).trades.detailed],
         false,
       ) as Promise<ITrades[]>;
     } catch (error) {

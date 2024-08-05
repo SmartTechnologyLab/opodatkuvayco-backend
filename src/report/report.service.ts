@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { groupBy } from 'ramda';
 import { CurrencyExchangeService } from 'src/currencyExchange/currencyExchange.service';
 import {
   Deal,
   DealOptions,
   ICorporateAction,
   IDealReport,
+  IDealShort,
   IReport,
   ITrades,
 } from './types';
@@ -23,27 +25,12 @@ export class ReportService {
   }
 
   groupDealsByTicker(deals: ITrades[]): { [key: string]: ITrades[] } {
-    const groupedDeals: { [key: string]: ITrades[] } = {};
-
-    deals.forEach((deal) => {
-      let ticker = deal.instr_nm;
-
-      if (ticker?.endsWith('.BLOCKED')) {
-        ticker = ticker?.replace('.BLOCKED', '');
-      }
-
-      if (ticker?.endsWith('.US')) {
-        ticker = ticker?.replace('.US', '');
-      }
-
-      if (groupedDeals[ticker]) {
-        groupedDeals[ticker].push(deal);
-      } else {
-        groupedDeals[ticker] = [deal];
-      }
+    const modifiedDeals = deals.map((deal) => {
+      const ticker = deal.instr_nm.split('.').at(0);
+      return { ...deal, instr_nm: ticker };
     });
 
-    return groupedDeals;
+    return groupBy((deal: ITrades) => deal.instr_nm, modifiedDeals);
   }
 
   async getReportExtended(report: ITrades[], isPrevDeal?: boolean) {
@@ -69,31 +56,15 @@ export class ReportService {
 
           for (const purchaseDeal of buyQueue) {
             if (deal.q >= purchaseDeal.q) {
-              const [purchaseRate, saleRate] =
-                await this.fetchPurchaseAndSellRate(
-                  purchaseDeal,
-                  deal,
-                  isPrevDeal,
-                );
-
-              deals.push(
-                this.getDeal({
-                  ticker,
-                  purchaseCommission: purchaseDeal.commission,
-                  purchaseDate: new Date(purchaseDeal.date),
-                  purchaseRate,
-                  purchasePrice: purchaseDeal.p,
-                  quantity: purchaseDeal.q,
-                  saleCommission: sellComission * purchaseDeal.q,
-                  saleDate: new Date(deal.date),
-                  saleRate,
-                  salePrice: deal.p,
-                }),
+              const newDeal = await this.setDeal(
+                deals,
+                purchaseDeal,
+                deal,
+                isPrevDeal,
+                sellComission,
               );
 
-              const quantityToProcess = Math.min(deal.q, purchaseDeal.q);
-              deal.q -= quantityToProcess;
-              purchaseDeal.q -= quantityToProcess;
+              deals.push(newDeal);
             }
           }
 
@@ -113,31 +84,15 @@ export class ReportService {
                 );
 
             if (foundShortBuy && foundShortBuy.q > 0) {
-              const [purchaseRate, saleRate] =
-                await this.fetchPurchaseAndSellRate(
-                  foundShortBuy,
-                  deal,
-                  isPrevDeal,
-                );
-
-              deals.push(
-                this.getDeal({
-                  ticker,
-                  purchaseCommission: foundShortBuy.commission,
-                  purchaseDate: new Date(foundShortBuy.date),
-                  purchaseRate,
-                  purchasePrice: foundShortBuy.p,
-                  quantity: foundShortBuy.q,
-                  saleCommission: (deal.commission / deal.q) * foundShortBuy.q,
-                  saleDate: new Date(deal.date),
-                  saleRate,
-                  salePrice: deal.p,
-                }),
+              const newDeal = await this.setDeal(
+                deals,
+                foundShortBuy,
+                deal,
+                isPrevDeal,
+                sellComission,
               );
 
-              const quantityToProcess = Math.min(deal.q, foundShortBuy.q);
-              deal.q -= quantityToProcess;
-              foundShortBuy.q -= quantityToProcess;
+              deals.push(newDeal);
             }
           }
         } else if (
@@ -147,36 +102,22 @@ export class ReportService {
             (t, ind) => t.operation === 'buy' && t.q > 0 && +index < ind,
           )
         ) {
+          sellComission = deal.commission / deal.q;
+
           const foundShortBuy = groupedDeals[ticker].find(
             (t, ind) => t.operation === 'buy' && t.q > 0 && +index < ind,
           );
 
           if (foundShortBuy) {
-            const [purchaseRate, saleRate] =
-              await this.fetchPurchaseAndSellRate(
-                foundShortBuy,
-                deal,
-                isPrevDeal,
-              );
-
-            deals.push(
-              this.getDeal({
-                ticker,
-                purchaseCommission: foundShortBuy.commission,
-                purchaseDate: new Date(foundShortBuy.date),
-                purchaseRate,
-                purchasePrice: foundShortBuy.p,
-                quantity: foundShortBuy.q,
-                saleCommission: deal.commission,
-                saleDate: new Date(deal.date),
-                saleRate,
-                salePrice: deal.p,
-              }),
+            const newDeal = await this.setDeal(
+              deals,
+              foundShortBuy,
+              deal,
+              isPrevDeal,
+              sellComission,
             );
 
-            const quantityToProcess = Math.min(deal.q, foundShortBuy.q);
-            deal.q -= quantityToProcess;
-            foundShortBuy.q -= quantityToProcess;
+            deals.push(newDeal);
           }
         }
         sellComission = 0;
@@ -206,31 +147,36 @@ export class ReportService {
     purchaseDeal: ITrades,
     sellDeal: ITrades,
     isPrevDeal: boolean,
-  ) {
+    sellComission?: number,
+  ): Promise<Deal> {
     const [purchaseRate, saleRate] = await this.fetchPurchaseAndSellRate(
       purchaseDeal,
       sellDeal,
       isPrevDeal,
     );
 
-    deals.push(
-      this.getDeal({
-        ticker: purchaseDeal.instr_nm,
-        purchaseCommission: purchaseDeal.commission,
-        purchaseDate: new Date(purchaseDeal.date),
-        purchasePrice: purchaseDeal.p,
-        purchaseRate,
-        quantity: purchaseDeal.q,
-        saleCommission: sellDeal.commission,
-        saleDate: new Date(sellDeal.date),
-        salePrice: sellDeal.p,
-        saleRate,
-      }),
-    );
+    const deal = this.getDeal({
+      ticker: purchaseDeal.instr_nm,
+      purchaseCommission: purchaseDeal.commission,
+      purchaseDate: new Date(purchaseDeal.date),
+      purchasePrice: purchaseDeal.p,
+      purchaseRate,
+      quantity: purchaseDeal.q,
+      saleCommission: sellComission * purchaseDeal.q,
+      saleDate: new Date(sellDeal.date),
+      salePrice: sellDeal.p,
+      saleRate,
+    });
+
+    const quantityToProcess = Math.min(purchaseDeal.q, sellDeal.q);
+    sellDeal.q -= quantityToProcess;
+    purchaseDeal.q -= quantityToProcess;
+
+    return deal;
   }
 
-  async getReport(report: ITrades[]): Promise<IDealReport> {
-    const trades = (await this.getReportExtended(report)) as IDealReport;
+  async getReport(report: ITrades[]): Promise<IDealReport<IDealShort>> {
+    const trades = (await this.getReportExtended(report)) as IDealReport<Deal>;
 
     const deals = Object.values(
       trades.deals.reduce(
@@ -252,7 +198,13 @@ export class ReportService {
       total: trades.total,
       totalTaxFee: trades.totalTaxFee,
       totalMilitaryFee: trades.totalMilitaryFee,
-      deals,
+      deals: deals.map((deal) => ({
+        ticker: deal.ticker,
+        total: deal.total,
+        percent: deal.percent,
+        purchaseUAH: deal.purchase.uah,
+        saleUAH: deal.sale.uah,
+      })),
     };
   }
 
