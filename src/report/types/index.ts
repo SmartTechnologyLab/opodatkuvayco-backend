@@ -25,7 +25,6 @@ export interface IDealReport<T> {
 }
 
 export interface ITrades {
-  trade_id: string;
   date: string;
   p: number;
   q: number;

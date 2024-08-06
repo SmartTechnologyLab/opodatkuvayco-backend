@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { groupBy } from 'ramda';
-import { CurrencyExchangeService } from 'src/currencyExchange/currencyExchange.service';
+import { groupBy, clone } from 'ramda';
+import { CurrencyExchangeService } from '../currencyExchange/currencyExchange.service';
 import {
   Deal,
   DealOptions,
@@ -24,20 +24,20 @@ export class ReportService {
     }
   }
 
-  groupDealsByTicker(deals: ITrades[]): { [key: string]: ITrades[] } {
-    const modifiedDeals = deals.map((deal) => {
+  groupTradesByTicker(trades: ITrades[]): { [key: string]: ITrades[] } {
+    const modifiedTrades = trades?.map((deal) => {
       const ticker = deal.instr_nm.split('.').at(0);
       return { ...deal, instr_nm: ticker };
     });
 
-    return groupBy((deal: ITrades) => deal.instr_nm, modifiedDeals);
+    return groupBy((deal: ITrades) => deal.instr_nm, modifiedTrades);
   }
 
   async getReportExtended(report: ITrades[], isPrevDeal?: boolean) {
     const deals: Deal[] = [];
     const remainedPurchaseDeals: ITrades[] = [];
-
-    const groupedDeals = this.groupDealsByTicker(report);
+    const clonnedReport = clone(report);
+    const groupedDeals = this.groupTradesByTicker(clonnedReport);
 
     for (const ticker in groupedDeals) {
       let buyQueue: ITrades[] = [];
@@ -57,7 +57,6 @@ export class ReportService {
           for (const purchaseDeal of buyQueue) {
             if (deal.q >= purchaseDeal.q) {
               const newDeal = await this.setDeal(
-                deals,
                 purchaseDeal,
                 deal,
                 isPrevDeal,
@@ -85,7 +84,6 @@ export class ReportService {
 
             if (foundShortBuy && foundShortBuy.q > 0) {
               const newDeal = await this.setDeal(
-                deals,
                 foundShortBuy,
                 deal,
                 isPrevDeal,
@@ -110,7 +108,6 @@ export class ReportService {
 
           if (foundShortBuy) {
             const newDeal = await this.setDeal(
-              deals,
               foundShortBuy,
               deal,
               isPrevDeal,
@@ -122,7 +119,6 @@ export class ReportService {
         }
         sellComission = 0;
       }
-
       remainedPurchaseDeals.push(...buyQueue.filter((deal) => deal.q > 0));
     }
 
@@ -143,7 +139,6 @@ export class ReportService {
   }
 
   async setDeal(
-    deals: Deal[],
     purchaseDeal: ITrades,
     sellDeal: ITrades,
     isPrevDeal: boolean,

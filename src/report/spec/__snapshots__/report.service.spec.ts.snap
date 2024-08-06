@@ -1,0 +1,228 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ReportService getReport returns deals that is summed by ticker 1`] = `
+{
+  "deals": [
+    {
+      "percent": -0.007445928377260325,
+      "purchaseUAH": 40951.24,
+      "saleUAH": 40646.32,
+      "ticker": "FIPO",
+      "total": -304.91999999999825,
+    },
+    {
+      "percent": -0.031465987631866144,
+      "purchaseUAH": 4838.24,
+      "saleUAH": 4686,
+      "ticker": "GOOGL",
+      "total": -152.23999999999978,
+    },
+    {
+      "percent": -0.0625,
+      "purchaseUAH": 36094.66666666667,
+      "saleUAH": 34100,
+      "ticker": "MNDY_IPO",
+      "total": -1994.666666666667,
+    },
+    {
+      "percent": -0.028919654119113125,
+      "purchaseUAH": 5851.5599999999995,
+      "saleUAH": 5623.2,
+      "ticker": "RIDE",
+      "total": -228.3599999999999,
+    },
+    {
+      "percent": -0.030674846625766916,
+      "purchaseUAH": 5020.400000000001,
+      "saleUAH": 4866.400000000001,
+      "ticker": "WISH",
+      "total": -154,
+    },
+  ],
+  "total": -2834.1866666666647,
+  "totalMilitaryFee": 0,
+  "totalTaxFee": 0,
+}
+`;
+
+exports[`ReportService group trades by ticker group trades by ticker 1`] = `
+{
+  "APPL": [
+    {
+      "commission": 1.73,
+      "curr_c": "USD",
+      "date": "2021-06-10 18:41:12",
+      "instr_nm": "APPL",
+      "operation": "buy",
+      "p": 10.65,
+      "q": 10,
+      "summ": 106.5,
+    },
+  ],
+  "FIPO": [
+    {
+      "commission": 2.31,
+      "curr_c": "USD",
+      "date": "2021-06-07 11:48:21",
+      "instr_nm": "FIPO",
+      "operation": "buy",
+      "p": 35.53,
+      "q": 13,
+      "summ": 461.89,
+    },
+    {
+      "commission": 2.31,
+      "curr_c": "USD",
+      "date": "2021-06-07 11:48:21",
+      "instr_nm": "FIPO",
+      "operation": "buy",
+      "p": 35.53,
+      "q": 13,
+      "summ": 461.89,
+    },
+    {
+      "commission": 2.31,
+      "curr_c": "USD",
+      "date": "2021-06-07 11:48:21",
+      "instr_nm": "FIPO",
+      "operation": "sell",
+      "p": 35.53,
+      "q": 26,
+      "summ": 461.89,
+    },
+  ],
+  "GOOGL": [
+    {
+      "commission": 1.73,
+      "curr_c": "sell",
+      "date": "2021-06-10 18:41:12",
+      "instr_nm": "GOOGL",
+      "operation": "sell",
+      "p": 10.65,
+      "q": 10,
+      "summ": 106.5,
+    },
+    {
+      "commission": 1.73,
+      "curr_c": "sell",
+      "date": "2021-06-11 18:41:12",
+      "instr_nm": "GOOGL",
+      "operation": "buy",
+      "p": 10.65,
+      "q": 10,
+      "summ": 106.5,
+    },
+  ],
+  "MNDY_IPO": [
+    {
+      "commission": 7.75,
+      "curr_c": "USD",
+      "date": "2021-06-10 14:06:17",
+      "instr_nm": "MNDY_IPO",
+      "operation": "buy",
+      "p": 155,
+      "q": 1,
+      "summ": 155,
+    },
+    {
+      "commission": 7.75,
+      "curr_c": "USD",
+      "date": "2021-07-10 14:06:17",
+      "instr_nm": "MNDY_IPO",
+      "operation": "buy",
+      "p": 156,
+      "q": 3,
+      "summ": 155,
+    },
+    {
+      "commission": 7.75,
+      "curr_c": "sell",
+      "date": "2021-10-10 14:06:17",
+      "instr_nm": "MNDY_IPO",
+      "operation": "sell",
+      "p": 155,
+      "q": 3,
+      "summ": 155,
+    },
+    {
+      "commission": 7.75,
+      "curr_c": "sell",
+      "date": "2021-11-10 14:06:17",
+      "instr_nm": "MNDY_IPO",
+      "operation": "sell",
+      "p": 155,
+      "q": 1,
+      "summ": 155,
+    },
+  ],
+  "RIDE": [
+    {
+      "commission": 1.73,
+      "curr_c": "USD",
+      "date": "2021-06-10 18:41:12",
+      "instr_nm": "RIDE",
+      "operation": "buy",
+      "p": 10.65,
+      "q": 10,
+      "summ": 106.5,
+    },
+    {
+      "commission": 1.73,
+      "curr_c": "sell",
+      "date": "2021-06-10 18:41:12",
+      "instr_nm": "RIDE",
+      "operation": "sell",
+      "p": 10.65,
+      "q": 12,
+      "summ": 106.5,
+    },
+    {
+      "commission": 1.73,
+      "curr_c": "sell",
+      "date": "2021-06-10 18:41:12",
+      "instr_nm": "RIDE",
+      "operation": "buy",
+      "p": 10.65,
+      "q": 2,
+      "summ": 106.5,
+    },
+  ],
+  "WISH": [
+    {
+      "commission": 1.75,
+      "curr_c": "USD",
+      "date": "2021-06-10 16:30:00",
+      "instr_nm": "WISH",
+      "operation": "buy",
+      "p": 11.06,
+      "q": 10,
+      "summ": 110.6,
+    },
+    {
+      "commission": 1.75,
+      "curr_c": "USD",
+      "date": "2021-06-10 16:30:00",
+      "instr_nm": "WISH",
+      "operation": "sell",
+      "p": 11.06,
+      "q": 10,
+      "summ": 110.6,
+    },
+  ],
+}
+`;
+
+exports[`ReportService report extended setting isPrevDeal to true returns trades that were not sold 1`] = `
+[
+  {
+    "commission": 1.73,
+    "curr_c": "USD",
+    "date": "2021-06-10 18:41:12",
+    "instr_nm": "APPL",
+    "operation": "buy",
+    "p": 10.65,
+    "q": 10,
+    "summ": 106.5,
+  },
+]
+`;
