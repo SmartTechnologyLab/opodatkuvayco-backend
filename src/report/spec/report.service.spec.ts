@@ -18,7 +18,7 @@ jest.mock('../../currencyExchange/currencyExchange.service', () => {
   };
 });
 
-describe('ReportService', () => {
+describe('Report Service', () => {
   let currencyExchangeService: CurrencyExchangeService;
   let reportService: ReportService;
 

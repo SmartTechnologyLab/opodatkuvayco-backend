@@ -152,3 +152,16 @@ export const trades: ITrades[] = [
     commission: 1.73,
   },
 ];
+
+export const tradesNextYear: ITrades[] = [
+  {
+    date: '2022-06-10 18:41:12',
+    instr_nm: 'APPL.US',
+    operation: 'sell',
+    p: 11.65,
+    curr_c: 'USD',
+    q: 10,
+    summ: 106.5,
+    commission: 1.73,
+  },
+];

@@ -42,7 +42,6 @@ export interface IReport {
   };
   trades: {
     detailed: ITrades[];
-    securities: Record<string, number>;
   };
 }
 

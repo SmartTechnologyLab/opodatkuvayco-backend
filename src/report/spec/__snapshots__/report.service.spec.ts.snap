@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`ReportService getReport returns deals that is summed by ticker 1`] = `
+exports[`Report Service getReport returns deals that is summed by ticker 1`] = `
 {
   "deals": [
     {
@@ -45,7 +45,7 @@ exports[`ReportService getReport returns deals that is summed by ticker 1`] = `
 }
 `;
 
-exports[`ReportService group trades by ticker group trades by ticker 1`] = `
+exports[`Report Service group trades by ticker group trades by ticker 1`] = `
 {
   "APPL": [
     {
@@ -212,7 +212,7 @@ exports[`ReportService group trades by ticker group trades by ticker 1`] = `
 }
 `;
 
-exports[`ReportService report extended setting isPrevDeal to true returns trades that were not sold 1`] = `
+exports[`Report Service report extended setting isPrevDeal to true returns trades that were not sold 1`] = `
 [
   {
     "commission": 1.73,

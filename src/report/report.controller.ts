@@ -16,7 +16,7 @@ import { reverse } from 'ramda';
 
 @Controller('report')
 export class ReportController {
-  constructor(private statementService: ReportService) {}
+  constructor(private reportService: ReportService) {}
 
   private filePath21 = path.join(__dirname, '..', '..', '21.json');
   private filePath22 = path.join(__dirname, '..', '..', '22.json');
@@ -34,24 +34,23 @@ export class ReportController {
     @UploadedFiles() files: Express.Multer.File[],
   ) {
     try {
+      const getReportFunction =
+        type === 'extended'
+          ? this.reportService.getReportExtended.bind(this.reportService)
+          : this.reportService.getReport.bind(this.reportService);
+
       if (files.length === 1) {
-        if (type === 'extended') {
-          return this.statementService.getReportExtended(
-            this.statementService.readReport(files.at(0)).trades.detailed,
-            false,
-          ) as Promise<ITrades[]>;
-        } else {
-          return this.statementService.getReport(
-            this.statementService.readReport(files.at(0)).trades.detailed,
-          );
-        }
+        return getReportFunction(
+          this.reportService.readReport(files.at(0)).trades.detailed,
+          false,
+        ) as Promise<ITrades[]>;
       }
 
       const reports: IReport[] = [];
       const dealsToCalculate: ITrades[] = [];
 
       files.forEach((file) => {
-        reports.push(this.statementService.readReport(file));
+        reports.push(this.reportService.readReport(file));
       });
 
       const sortedReportsByDate = sortByDate(reports);
@@ -66,7 +65,7 @@ export class ReportController {
         if (index !== sortedReportsByDate.length - 1) {
           const previousDeals = remainedDealsMap.get(index - 1) || [];
 
-          const deals = await this.statementService.getReportExtended(
+          const deals = await getReportFunction(
             previousDeals.length
               ? [...previousDeals, ...statement.trades.detailed]
               : statement.trades.detailed,
@@ -77,15 +76,20 @@ export class ReportController {
             remainedDealsMap.set(index, []);
           }
 
-          remainedDealsMap.get(index)?.push(...(deals as ITrades[]));
+          if ((deals as ITrades[]).length) {
+            remainedDealsMap.get(index)?.push(...(deals as ITrades[]));
+          }
 
-          if (index === sortedReportsByDate.length - 2) {
+          if (
+            index === sortedReportsByDate.length - 2 &&
+            (deals as ITrades[]).length
+          ) {
             dealsToCalculate.push(...(deals as ITrades[]));
           }
         }
       }
 
-      return this.statementService.getReportExtended(
+      return getReportFunction(
         [...dealsToCalculate, ...sortedReportsByDate.at(0).trades.detailed],
         false,
       ) as Promise<ITrades[]>;
