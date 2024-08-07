@@ -146,38 +146,6 @@ export class ReportService {
         };
   }
 
-  async setDeal(
-    purchaseDeal: ITrades,
-    sellDeal: ITrades,
-    isPrevDeal: boolean,
-    sellComission?: number,
-  ): Promise<Deal> {
-    const [purchaseRate, saleRate] = await this.fetchPurchaseAndSellRate(
-      purchaseDeal,
-      sellDeal,
-      isPrevDeal,
-    );
-
-    const deal = this.getDeal({
-      ticker: purchaseDeal.instr_nm,
-      purchaseCommission: purchaseDeal.commission,
-      purchaseDate: new Date(purchaseDeal.date),
-      purchasePrice: purchaseDeal.p,
-      purchaseRate,
-      quantity: purchaseDeal.q,
-      saleCommission: sellComission * purchaseDeal.q,
-      saleDate: new Date(sellDeal.date),
-      salePrice: sellDeal.p,
-      saleRate,
-    });
-
-    const quantityToProcess = Math.min(purchaseDeal.q, sellDeal.q);
-    sellDeal.q -= quantityToProcess;
-    purchaseDeal.q -= quantityToProcess;
-
-    return deal;
-  }
-
   async getReport(report: ITrades[]): Promise<IDealReport<IDealShort>> {
     const trades = (await this.getReportExtended(report)) as IDealReport<Deal>;
 
@@ -209,6 +177,38 @@ export class ReportService {
         saleUAH: deal.sale.uah,
       })),
     };
+  }
+
+  async setDeal(
+    purchaseDeal: ITrades,
+    sellDeal: ITrades,
+    isPrevDeal: boolean,
+    sellComission?: number,
+  ): Promise<Deal> {
+    const [purchaseRate, saleRate] = await this.fetchPurchaseAndSellRate(
+      purchaseDeal,
+      sellDeal,
+      isPrevDeal,
+    );
+
+    const deal = this.getDeal({
+      ticker: purchaseDeal.instr_nm,
+      purchaseCommission: purchaseDeal.commission,
+      purchaseDate: new Date(purchaseDeal.date),
+      purchasePrice: purchaseDeal.p,
+      purchaseRate,
+      quantity: purchaseDeal.q,
+      saleCommission: sellComission * purchaseDeal.q,
+      saleDate: new Date(sellDeal.date),
+      salePrice: sellDeal.p,
+      saleRate,
+    });
+
+    const quantityToProcess = Math.min(purchaseDeal.q, sellDeal.q);
+    sellDeal.q -= quantityToProcess;
+    purchaseDeal.q -= quantityToProcess;
+
+    return deal;
   }
 
   async fetchPurchaseAndSellRate(
