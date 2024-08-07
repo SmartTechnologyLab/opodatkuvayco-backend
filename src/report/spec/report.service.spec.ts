@@ -1,6 +1,6 @@
 import { ReportService } from '../report.service';
 import { CurrencyExchangeService } from '../../currencyExchange/currencyExchange.service';
-import { trades } from './__fixtures__/report';
+import { trades, tradesNextYear } from './__fixtures__/report';
 import { expectedGroupedTrades } from './__fixtures__/dealsExtended';
 import { Deal, IDealReport, ITrades } from '../types';
 
@@ -83,6 +83,12 @@ describe('Report Service', () => {
       )) as IDealReport<Deal>;
 
       expect(Object.keys(dealsExtended).length).toEqual(4);
+    });
+
+    it('throw an error when trade with operation sell is left', async () => {
+      await expect(async () => {
+        await reportService.getReportExtended(tradesNextYear, false);
+      }).rejects.toThrow('Not enough buy deals');
     });
 
     it('setting isPrevDeal to true returns trades that were not sold', async () => {

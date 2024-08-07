@@ -121,7 +121,7 @@ describe('Report Controller', () => {
       expect(response.body).toMatchSnapshot();
     });
 
-    it('', async () => {
+    it('when query is empty it should return short deals', async () => {
       const mockFile1 = {
         buffer: Buffer.from(
           JSON.stringify({ trades: { detailed: tradesNextYear } }),

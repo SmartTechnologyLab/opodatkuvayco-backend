@@ -1,22 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Report Controller Post /deals  1`] = `
-{
-  "deals": [
-    {
-      "percent": 0.05947617315387421,
-      "purchaseUAH": 4838.24,
-      "saleUAH": 5126,
-      "ticker": "APPL",
-      "total": 287.7600000000002,
-    },
-  ],
-  "total": 287.7600000000002,
-  "totalMilitaryFee": 4.316400000000003,
-  "totalTaxFee": 51.79680000000004,
-}
-`;
-
 exports[`Report Controller Post /deals should return extended report when query type is "extended" 1`] = `
 {
   "deals": [
@@ -225,6 +208,23 @@ exports[`Report Controller Post /deals when getting two files took the latest by
         "sum": 116.5,
         "uah": 5126,
       },
+      "ticker": "APPL",
+      "total": 287.7600000000002,
+    },
+  ],
+  "total": 287.7600000000002,
+  "totalMilitaryFee": 4.316400000000003,
+  "totalTaxFee": 51.79680000000004,
+}
+`;
+
+exports[`Report Controller Post /deals when query is empty it should return short deals 1`] = `
+{
+  "deals": [
+    {
+      "percent": 0.05947617315387421,
+      "purchaseUAH": 4838.24,
+      "saleUAH": 5126,
       "ticker": "APPL",
       "total": 287.7600000000002,
     },

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { groupBy, clone } from 'ramda';
 import { CurrencyExchangeService } from '../currencyExchange/currencyExchange.service';
 import {
@@ -120,6 +120,14 @@ export class ReportService {
         sellComission = 0;
       }
       remainedPurchaseDeals.push(...buyQueue.filter((deal) => deal.q > 0));
+
+      if (
+        groupedDeals[ticker].some(
+          (deal) => deal.operation === 'sell' && deal.q > 0,
+        )
+      ) {
+        throw new BadRequestException('Not enough buy deals');
+      }
     }
 
     const total = deals.reduce((acc, deal) => acc + deal.total, 0);
