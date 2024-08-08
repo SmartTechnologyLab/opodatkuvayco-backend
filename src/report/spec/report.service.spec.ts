@@ -64,7 +64,6 @@ describe('Report Service', () => {
 
       const dealsExtended = (await reportService.getReportExtended(
         trades,
-        false,
       )) as IDealReport<Deal>;
 
       expect(dealsExtended.deals).toHaveLength(8);
@@ -79,7 +78,6 @@ describe('Report Service', () => {
     it('returns object with certain keys', async () => {
       const dealsExtended = (await reportService.getReportExtended(
         trades,
-        false,
       )) as IDealReport<Deal>;
 
       expect(Object.keys(dealsExtended).length).toEqual(4);
@@ -87,14 +85,13 @@ describe('Report Service', () => {
 
     it('throw an error when trade with operation sell is left', async () => {
       await expect(async () => {
-        await reportService.getReportExtended(tradesNextYear, false);
+        await reportService.getReportExtended(tradesNextYear);
       }).rejects.toThrow('Not enough buy deals');
     });
 
     it('setting isPrevDeal to true returns trades that were not sold', async () => {
-      const remainedDeals = (await reportService.getReportExtended(
+      const remainedDeals = (await reportService.getPrevTrades(
         trades,
-        true,
       )) as ITrades[];
 
       expect(remainedDeals).toMatchSnapshot();
@@ -187,12 +184,12 @@ describe('Report Service', () => {
         commission: 2.31,
       };
 
-      const founDeal = reportService?.findDealByDateAndPrice(
+      const foundDeal = reportService?.findDealByDateAndPrice(
         expectedGroupedTrades.FIPO,
         trade,
       );
 
-      expect(founDeal).not.toEqual(trade);
+      expect(foundDeal).not.toEqual(trade);
     });
   });
 
@@ -239,17 +236,6 @@ describe('Report Service', () => {
 
       expect(mockGetCurrencyExchange).toHaveBeenCalledTimes(2);
       expect(rates).toEqual([RATE, RATE]);
-    });
-
-    it('when isPrevDeal is true', async () => {
-      const rates = await reportService.fetchPurchaseAndSellRate(
-        purchaseTrade,
-        sellTrade,
-        true,
-      );
-
-      expect(mockGetCurrencyExchange).not.toHaveBeenCalled();
-      expect(rates).toEqual([undefined, undefined]);
     });
   });
 });

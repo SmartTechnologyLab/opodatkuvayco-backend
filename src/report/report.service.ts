@@ -6,7 +6,6 @@ import {
   DealOptions,
   ICorporateAction,
   IDealReport,
-  IDealShort,
   IReport,
   ITrades,
 } from './types';
@@ -33,11 +32,10 @@ export class ReportService {
     return groupBy((deal: ITrades) => deal.instr_nm, modifiedTrades);
   }
 
-  async getReportExtended(report: ITrades[], isPrevDeal?: boolean) {
+  async getReportExtended(report: ITrades[]): Promise<IDealReport<Deal>> {
     const deals: Deal[] = [];
-    const remainedPurchaseDeals: ITrades[] = [];
-    const clonnedReport = clone(report);
-    const groupedDeals = this.groupTradesByTicker(clonnedReport);
+
+    const groupedDeals = this.groupTradesByTicker(clone(report));
 
     for (const ticker in groupedDeals) {
       let buyQueue: ITrades[] = [];
@@ -59,7 +57,6 @@ export class ReportService {
               const newDeal = await this.setDeal(
                 purchaseDeal,
                 deal,
-                isPrevDeal,
                 sellComission,
               );
 
@@ -86,7 +83,6 @@ export class ReportService {
               const newDeal = await this.setDeal(
                 foundShortBuy,
                 deal,
-                isPrevDeal,
                 sellComission,
               );
 
@@ -110,7 +106,6 @@ export class ReportService {
             const newDeal = await this.setDeal(
               foundShortBuy,
               deal,
-              isPrevDeal,
               sellComission,
             );
 
@@ -119,7 +114,6 @@ export class ReportService {
         }
         sellComission = 0;
       }
-      remainedPurchaseDeals.push(...buyQueue.filter((deal) => deal.q > 0));
 
       if (
         groupedDeals[ticker].some(
@@ -136,17 +130,85 @@ export class ReportService {
 
     const totalMilitaryFee = this.getMilitaryFee(total);
 
-    return isPrevDeal
-      ? remainedPurchaseDeals
-      : {
-          total,
-          totalTaxFee,
-          totalMilitaryFee,
-          deals: deals.sort((a, b) => a.ticker.localeCompare(b.ticker)),
-        };
+    return {
+      total,
+      totalTaxFee,
+      totalMilitaryFee,
+      deals: deals.sort((a, b) => a.ticker.localeCompare(b.ticker)),
+    };
   }
 
-  async getReport(report: ITrades[]): Promise<IDealReport<IDealShort>> {
+  async getPrevTrades(report: ITrades[]): Promise<ITrades[]> {
+    const remainedPurchaseDeals: ITrades[] = [];
+
+    const groupedDeals = this.groupTradesByTicker(clone(report));
+
+    for (const ticker in groupedDeals) {
+      let buyQueue: ITrades[] = [];
+      for (const [index, deal] of Object.entries(groupedDeals[ticker])) {
+        if (deal.operation === 'buy' && deal.q > 0) {
+          const existingDeal = this.findDealByDateAndPrice(buyQueue, deal);
+          if (existingDeal) {
+            existingDeal.q += deal.q;
+            existingDeal.commission += deal.commission;
+          } else {
+            buyQueue.push(deal);
+          }
+        } else if (deal.operation === 'sell' && buyQueue.length > 0) {
+          for (const purchaseDeal of buyQueue) {
+            if (deal.q >= purchaseDeal.q) {
+              const quantityToProcess = Math.min(purchaseDeal.q, deal.q);
+              deal.q -= quantityToProcess;
+              purchaseDeal.q -= quantityToProcess;
+            }
+          }
+
+          buyQueue = buyQueue.filter((purchaseDeal) => purchaseDeal.q > 0);
+
+          while (
+            deal.q > 0 &&
+            (buyQueue.some((b) => b.q > 0) ||
+              groupedDeals[ticker].find(
+                (d, indx) => d.operation === 'buy' && indx > +index,
+              ))
+          ) {
+            const foundShortBuy = buyQueue.some((b) => b.q > 0)
+              ? buyQueue.filter((b) => b.q > 0).at(0)
+              : groupedDeals[ticker].find(
+                  (d, indx) => d.operation === 'buy' && indx > +index,
+                );
+
+            if (foundShortBuy && foundShortBuy.q > 0) {
+              const quantityToProcess = Math.min(foundShortBuy.q, deal.q);
+              foundShortBuy.q -= quantityToProcess;
+              deal.q -= quantityToProcess;
+            }
+          }
+        } else if (
+          deal.operation === 'sell' &&
+          buyQueue.length === 0 &&
+          groupedDeals[ticker].find(
+            (t, ind) => t.operation === 'buy' && t.q > 0 && +index < ind,
+          )
+        ) {
+          const foundShortBuy = groupedDeals[ticker].find(
+            (t, ind) => t.operation === 'buy' && t.q > 0 && +index < ind,
+          );
+
+          if (foundShortBuy) {
+            const quantityToProcess = Math.min(foundShortBuy.q, deal.q);
+            deal.q -= quantityToProcess;
+            foundShortBuy.q -= quantityToProcess;
+          }
+        }
+      }
+      remainedPurchaseDeals.push(...buyQueue.filter((deal) => deal.q > 0));
+    }
+
+    return remainedPurchaseDeals;
+  }
+
+  async getReport(report: ITrades[]): Promise<IDealReport<Deal>> {
     const trades = (await this.getReportExtended(report)) as IDealReport<Deal>;
 
     const deals = Object.values(
@@ -169,26 +231,18 @@ export class ReportService {
       total: trades.total,
       totalTaxFee: trades.totalTaxFee,
       totalMilitaryFee: trades.totalMilitaryFee,
-      deals: deals.map((deal) => ({
-        ticker: deal.ticker,
-        total: deal.total,
-        percent: deal.percent,
-        purchaseUAH: deal.purchase.uah,
-        saleUAH: deal.sale.uah,
-      })),
+      deals,
     };
   }
 
   async setDeal(
     purchaseDeal: ITrades,
     sellDeal: ITrades,
-    isPrevDeal: boolean,
     sellComission?: number,
   ): Promise<Deal> {
     const [purchaseRate, saleRate] = await this.fetchPurchaseAndSellRate(
       purchaseDeal,
       sellDeal,
-      isPrevDeal,
     );
 
     const deal = this.getDeal({
@@ -211,22 +265,17 @@ export class ReportService {
     return deal;
   }
 
-  async fetchPurchaseAndSellRate(
-    purchaseDeal: ITrades,
-    sellDeal: ITrades,
-    isPrevDeal?: boolean,
-  ) {
+  async fetchPurchaseAndSellRate(purchaseDeal: ITrades, sellDeal: ITrades) {
     const [{ rate: purchaseRate }, { rate: sellRate }] = await Promise.all([
-      !isPrevDeal &&
-        this.currencyExchangeService.getCurrencyExchange(
-          purchaseDeal.curr_c,
-          purchaseDeal.date,
-        ),
-      !isPrevDeal &&
-        this.currencyExchangeService.getCurrencyExchange(
-          sellDeal.curr_c,
-          sellDeal.date,
-        ),
+      this.currencyExchangeService.getCurrencyExchange(
+        purchaseDeal.curr_c,
+        purchaseDeal.date,
+      ),
+
+      this.currencyExchangeService.getCurrencyExchange(
+        sellDeal.curr_c,
+        sellDeal.date,
+      ),
     ]);
 
     return [purchaseRate, sellRate];

@@ -12,11 +12,6 @@ export interface ICorporateAction {
   currency: string;
 }
 
-export interface IPosition {
-  i: string;
-  q: number;
-}
-
 export interface IDealReport<T> {
   total: number;
   totalTaxFee: number;
@@ -57,14 +52,6 @@ export type DealOptions = {
   saleRate?: number;
   ticker?: string;
 };
-
-export interface IDealShort {
-  ticker: string;
-  total: number;
-  percent: number;
-  purchaseUAH: number;
-  saleUAH: number;
-}
 
 export type Deal = {
   id: symbol;

@@ -65,11 +65,10 @@ export class ReportController {
         if (index !== sortedReportsByDate.length - 1) {
           const previousDeals = remainedDealsMap.get(index - 1) || [];
 
-          const deals = await getReportFunction(
+          const deals = await this.reportService.getPrevTrades(
             previousDeals.length
               ? [...previousDeals, ...statement.trades.detailed]
               : statement.trades.detailed,
-            true,
           );
 
           if (!remainedDealsMap.has(index)) {

@@ -107,9 +107,10 @@ describe('Report Controller', () => {
           corporate_actions: { detailed: [] },
         });
 
+      jest.spyOn(reportService, 'getPrevTrades').mockResolvedValue(trades);
+
       jest
         .spyOn(reportService, 'getReportExtended')
-        .mockResolvedValueOnce(resultDeals)
         .mockResolvedValueOnce(resultDealsNextYear);
 
       const response = await request(app.getHttpServer())

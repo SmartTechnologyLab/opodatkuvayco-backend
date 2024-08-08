@@ -223,8 +223,23 @@ exports[`Report Controller Post /deals when query is empty it should return shor
   "deals": [
     {
       "percent": 0.05947617315387421,
-      "purchaseUAH": 4838.24,
-      "saleUAH": 5126,
+      "purchase": {
+        "commission": 1.73,
+        "date": "2021-06-10T15:41:12.000Z",
+        "price": 10.65,
+        "rate": 44,
+        "sum": 106.5,
+        "uah": 4838.24,
+      },
+      "quantity": 10,
+      "sale": {
+        "commission": 1.73,
+        "date": "2021-06-10T15:41:12.000Z",
+        "price": 10.65,
+        "rate": 44,
+        "sum": 106.5,
+        "uah": 5126,
+      },
       "ticker": "APPL",
       "total": 287.7600000000002,
     },

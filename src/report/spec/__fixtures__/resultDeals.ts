@@ -1,4 +1,4 @@
-import { Deal, IDealReport, IDealShort } from 'src/report/types';
+import { Deal, IDealReport } from 'src/report/types';
 
 export const resultDeals: IDealReport<Deal> = {
   total: -2834.1866666666647,
@@ -223,17 +223,33 @@ export const resultDealsNextYear: IDealReport<Deal> = {
   ],
 };
 
-export const shortResultDeals: IDealReport<IDealShort> = {
+export const shortResultDeals: IDealReport<Deal> = {
   total: 287.7600000000002,
   totalTaxFee: 51.79680000000004,
   totalMilitaryFee: 4.316400000000003,
   deals: [
     {
-      purchaseUAH: 4838.24,
-      saleUAH: 5126,
+      id: Symbol(),
+      quantity: 10,
       ticker: 'APPL',
       total: 287.7600000000002,
       percent: 0.05947617315387421,
+      purchase: {
+        commission: 1.73,
+        date: new Date('2021-06-10T15:41:12.000Z'),
+        price: 10.65,
+        rate: 44,
+        sum: 106.5,
+        uah: 4838.24,
+      },
+      sale: {
+        commission: 1.73,
+        date: new Date('2021-06-10T15:41:12.000Z'),
+        price: 10.65,
+        rate: 44,
+        sum: 106.5,
+        uah: 5126,
+      },
     },
   ],
 };
