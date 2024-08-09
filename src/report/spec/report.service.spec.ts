@@ -59,7 +59,7 @@ describe('Report Service', () => {
 
   describe('report extended', () => {
     it('calculated deals', async () => {
-      const TOTAL = -2834.19;
+      const TOTAL = -2790.19;
       const TAXES = 0;
 
       const dealsExtended = (await reportService.getReportExtended(

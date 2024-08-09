@@ -58,7 +58,7 @@ exports[`Report Service getReport returns deals that is summed by ticker 1`] = `
         "price": 155,
         "rate": 44,
         "sum": 155,
-        "uah": 36094.66666666667,
+        "uah": 29230.666666666668,
       },
       "quantity": 1,
       "sale": {
@@ -67,10 +67,10 @@ exports[`Report Service getReport returns deals that is summed by ticker 1`] = `
         "price": 155,
         "rate": 44,
         "sum": 155,
-        "uah": 34100,
+        "uah": 27280,
       },
       "ticker": "MNDY_IPO",
-      "total": -1994.666666666667,
+      "total": -1950.666666666667,
     },
     {
       "id": Symbol(),
@@ -119,7 +119,7 @@ exports[`Report Service getReport returns deals that is summed by ticker 1`] = `
       "total": -154,
     },
   ],
-  "total": -2834.1866666666647,
+  "total": -2790.1866666666647,
   "totalMilitaryFee": 0,
   "totalTaxFee": 0,
 }

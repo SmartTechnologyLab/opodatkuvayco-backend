@@ -1,6 +1,5 @@
 import {
   Controller,
-  Get,
   Post,
   Query,
   UploadedFiles,
@@ -9,23 +8,12 @@ import {
 import { ReportService } from './report.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { IReport, ITrades } from './types';
-import * as fs from 'fs';
-import * as path from 'path';
 import { sortByDate } from './helpers';
 import { reverse } from 'ramda';
 
 @Controller('report')
 export class ReportController {
   constructor(private reportService: ReportService) {}
-
-  private filePath21 = path.join(__dirname, '..', '..', '21.json');
-  private filePath22 = path.join(__dirname, '..', '..', '22.json');
-  private filePath23 = path.join(__dirname, '..', '..', '23.json');
-
-  @Get('test')
-  async test() {
-    return JSON.parse(fs.readFileSync(this.filePath21, 'utf-8'));
-  }
 
   @Post('deals')
   @UseInterceptors(FilesInterceptor('file', 10))

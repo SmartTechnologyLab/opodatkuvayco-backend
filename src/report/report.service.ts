@@ -36,7 +36,6 @@ export class ReportService {
     const deals: Deal[] = [];
 
     const groupedDeals = this.groupTradesByTicker(clone(report));
-
     for (const ticker in groupedDeals) {
       let buyQueue: ITrades[] = [];
       let sellComission = 0;
@@ -53,7 +52,7 @@ export class ReportService {
           sellComission = deal.commission / deal.q;
 
           for (const purchaseDeal of buyQueue) {
-            if (deal.q >= purchaseDeal.q) {
+            if (deal.q > 0 && purchaseDeal.q > 0) {
               const newDeal = await this.setDeal(
                 purchaseDeal,
                 deal,
@@ -245,20 +244,21 @@ export class ReportService {
       sellDeal,
     );
 
+    const quantityToProcess = Math.min(purchaseDeal.q, sellDeal.q);
+
     const deal = this.getDeal({
       ticker: purchaseDeal.instr_nm,
       purchaseCommission: purchaseDeal.commission,
       purchaseDate: new Date(purchaseDeal.date),
       purchasePrice: purchaseDeal.p,
       purchaseRate,
-      quantity: purchaseDeal.q,
+      quantity: quantityToProcess,
       saleCommission: sellComission * purchaseDeal.q,
       saleDate: new Date(sellDeal.date),
       salePrice: sellDeal.p,
       saleRate,
     });
 
-    const quantityToProcess = Math.min(purchaseDeal.q, sellDeal.q);
     sellDeal.q -= quantityToProcess;
     purchaseDeal.q -= quantityToProcess;
 
