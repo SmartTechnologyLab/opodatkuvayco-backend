@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { groupBy, clone } from 'ramda';
+import { groupBy, clone, reverse } from 'ramda';
 import { CurrencyExchangeService } from '../currencyExchange/currencyExchange.service';
 import {
   Deal,
@@ -9,6 +9,7 @@ import {
   IReport,
   ITrades,
 } from './types';
+import { sortByDate } from './helpers';
 
 @Injectable()
 export class ReportService {
@@ -263,6 +264,70 @@ export class ReportService {
     purchaseDeal.q -= quantityToProcess;
 
     return deal;
+  }
+
+  async handleReports(
+    files: Express.Multer.File[],
+    reportType: string,
+  ): Promise<IDealReport<Deal>> {
+    const getReportFunction =
+      reportType === 'extended'
+        ? this.getReportExtended.bind(this)
+        : this.getReport.bind(this);
+
+    if (files.length === 1) {
+      return getReportFunction(
+        this.readReport(files.at(0)).trades.detailed,
+        false,
+      );
+    }
+
+    const reports: IReport[] = [];
+    const dealsToCalculate: ITrades[] = [];
+
+    files.forEach((file) => {
+      reports.push(this.readReport(file));
+    });
+
+    const sortedReportsByDate = sortByDate(reports);
+
+    const reversedReports: IReport[] = reverse(sortedReportsByDate);
+
+    const remainedDealsMap = new Map<number, ITrades[]>();
+
+    for (const [indx, statement] of Object.entries(reversedReports)) {
+      const index = +indx;
+
+      if (index !== sortedReportsByDate.length - 1) {
+        const previousDeals = remainedDealsMap.get(index - 1) || [];
+
+        const deals = await this.getPrevTrades(
+          previousDeals.length
+            ? [...previousDeals, ...statement.trades.detailed]
+            : statement.trades.detailed,
+        );
+
+        if (!remainedDealsMap.has(index)) {
+          remainedDealsMap.set(index, []);
+        }
+
+        if ((deals as ITrades[]).length) {
+          remainedDealsMap.get(index)?.push(...(deals as ITrades[]));
+        }
+
+        if (
+          index === sortedReportsByDate.length - 2 &&
+          (deals as ITrades[]).length
+        ) {
+          dealsToCalculate.push(...(deals as ITrades[]));
+        }
+      }
+    }
+
+    return getReportFunction(
+      [...dealsToCalculate, ...sortedReportsByDate.at(0).trades.detailed],
+      false,
+    );
   }
 
   async fetchPurchaseAndSellRate(purchaseDeal: ITrades, sellDeal: ITrades) {
