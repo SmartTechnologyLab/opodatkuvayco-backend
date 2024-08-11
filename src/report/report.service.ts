@@ -36,11 +36,12 @@ export class ReportService {
   async getReportExtended(report: ITrades[]): Promise<IDealReport<Deal>> {
     const deals: Deal[] = [];
 
-    const groupedDeals = this.groupTradesByTicker(clone(report));
-    for (const ticker in groupedDeals) {
+    const groupedTrades = this.groupTradesByTicker(clone(report));
+
+    for (const ticker in groupedTrades) {
       let buyQueue: ITrades[] = [];
       let sellComission = 0;
-      for (const [index, deal] of Object.entries(groupedDeals[ticker])) {
+      for (const [, deal] of Object.entries(groupedTrades[ticker])) {
         if (deal.operation === 'buy' && deal.q > 0) {
           const existingDeal = this.findDealByDateAndPrice(buyQueue, deal);
           if (existingDeal) {
@@ -69,15 +70,11 @@ export class ReportService {
           while (
             deal.q > 0 &&
             (buyQueue.some((b) => b.q > 0) ||
-              groupedDeals[ticker].find(
-                (d, indx) => d.operation === 'buy' && indx > +index,
-              ))
+              this.getShortBuy(groupedTrades[ticker], deal))
           ) {
             const foundShortBuy = buyQueue.some((b) => b.q > 0)
               ? buyQueue.filter((b) => b.q > 0).at(0)
-              : groupedDeals[ticker].find(
-                  (d, indx) => d.operation === 'buy' && indx > +index,
-                );
+              : this.getShortBuy(groupedTrades[ticker], deal);
 
             if (foundShortBuy && foundShortBuy.q > 0) {
               const newDeal = await this.setDeal(
@@ -92,15 +89,11 @@ export class ReportService {
         } else if (
           deal.operation === 'sell' &&
           buyQueue.length === 0 &&
-          groupedDeals[ticker].find(
-            (t, ind) => t.operation === 'buy' && t.q > 0 && +index < ind,
-          )
+          this.getShortBuy(groupedTrades[ticker], deal)
         ) {
           sellComission = deal.commission / deal.q;
 
-          const foundShortBuy = groupedDeals[ticker].find(
-            (t, ind) => t.operation === 'buy' && t.q > 0 && +index < ind,
-          );
+          const foundShortBuy = this.getShortBuy(groupedTrades[ticker], deal);
 
           if (foundShortBuy) {
             const newDeal = await this.setDeal(
@@ -116,7 +109,7 @@ export class ReportService {
       }
 
       if (
-        groupedDeals[ticker].some(
+        groupedTrades[ticker].some(
           (deal) => deal.operation === 'sell' && deal.q > 0,
         )
       ) {
@@ -141,11 +134,11 @@ export class ReportService {
   async getPrevTrades(report: ITrades[]): Promise<ITrades[]> {
     const remainedPurchaseDeals: ITrades[] = [];
 
-    const groupedDeals = this.groupTradesByTicker(clone(report));
+    const groupedTrades = this.groupTradesByTicker(clone(report));
 
-    for (const ticker in groupedDeals) {
+    for (const ticker in groupedTrades) {
       let buyQueue: ITrades[] = [];
-      for (const [index, deal] of Object.entries(groupedDeals[ticker])) {
+      for (const [, deal] of Object.entries(groupedTrades[ticker])) {
         if (deal.operation === 'buy' && deal.q > 0) {
           const existingDeal = this.findDealByDateAndPrice(buyQueue, deal);
           if (existingDeal) {
@@ -168,15 +161,11 @@ export class ReportService {
           while (
             deal.q > 0 &&
             (buyQueue.some((b) => b.q > 0) ||
-              groupedDeals[ticker].find(
-                (d, indx) => d.operation === 'buy' && indx > +index,
-              ))
+              this.getShortBuy(groupedTrades[ticker], deal))
           ) {
             const foundShortBuy = buyQueue.some((b) => b.q > 0)
               ? buyQueue.filter((b) => b.q > 0).at(0)
-              : groupedDeals[ticker].find(
-                  (d, indx) => d.operation === 'buy' && indx > +index,
-                );
+              : this.getShortBuy(groupedTrades[ticker], deal);
 
             if (foundShortBuy && foundShortBuy.q > 0) {
               const quantityToProcess = Math.min(foundShortBuy.q, deal.q);
@@ -187,13 +176,9 @@ export class ReportService {
         } else if (
           deal.operation === 'sell' &&
           buyQueue.length === 0 &&
-          groupedDeals[ticker].find(
-            (t, ind) => t.operation === 'buy' && t.q > 0 && +index < ind,
-          )
+          this.getShortBuy(groupedTrades[ticker], deal)
         ) {
-          const foundShortBuy = groupedDeals[ticker].find(
-            (t, ind) => t.operation === 'buy' && t.q > 0 && +index < ind,
-          );
+          const foundShortBuy = this.getShortBuy(groupedTrades[ticker], deal);
 
           if (foundShortBuy) {
             const quantityToProcess = Math.min(foundShortBuy.q, deal.q);
@@ -233,6 +218,15 @@ export class ReportService {
       totalMilitaryFee: trades.totalMilitaryFee,
       deals,
     };
+  }
+
+  getShortBuy(trades: ITrades[], currentSellTrade: ITrades) {
+    return trades.find(
+      (trade, indx) =>
+        trade.operation === 'buy' &&
+        trade.q > 0 &&
+        indx > trades.indexOf(currentSellTrade),
+    );
   }
 
   async setDeal(
