@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { GrouppedTrades, ITrade, IFreedomFinanceTrade } from 'src/report/types';
+import {
+  GrouppedTrades,
+  ITrade,
+  IFreedomFinanceTrade,
+  IFreedomFinanceReport,
+} from 'src/report/types';
 import { groupBy } from 'ramda';
 import { StockExchange } from './constants';
 
@@ -25,6 +30,15 @@ export class NormalizeTradesService {
         return this.normalizedFreedomFinanceTrades(
           trades as IFreedomFinanceTrade[],
         );
+      default:
+        break;
+    }
+  }
+
+  getReportByStockExchange<T>(report: T, stockExchange: StockExchange) {
+    switch (stockExchange) {
+      case StockExchange.FREEDOM_FINANCE:
+        return (report as IFreedomFinanceReport).trades.detailed;
       default:
         break;
     }

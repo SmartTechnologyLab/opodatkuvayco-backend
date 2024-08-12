@@ -1,11 +1,11 @@
-type CorporateActionTypeId = 'dividend' | 'maturity';
+type FreedomFinanceCorporateActionTypeId = 'dividend' | 'maturity';
 
 type OperationType = 'buy' | 'sell';
 
-export interface ICorporateAction {
+export interface IFreedomFinanceCorporateAction {
   date: string;
   type: string;
-  type_id: CorporateActionTypeId;
+  type_id: FreedomFinanceCorporateActionTypeId;
   amount: number;
   ticker: string;
   isin: string;
@@ -44,7 +44,7 @@ export interface IFreedomFinanceTrade {
 export interface IFreedomFinanceReport {
   date_start: string;
   corporate_actions: {
-    detailed: ICorporateAction[];
+    detailed: IFreedomFinanceCorporateAction[];
   };
   trades: {
     detailed: IFreedomFinanceTrade[];

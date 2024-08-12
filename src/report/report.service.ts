@@ -4,10 +4,10 @@ import { CurrencyExchangeService } from '../currencyExchange/currencyExchange.se
 import {
   Deal,
   DealOptions,
-  ICorporateAction,
   ITrade,
   IDealReport,
   IFreedomFinanceReport,
+  IFreedomFinanceCorporateAction,
 } from './types';
 import { sortByDate } from './helpers';
 import { NormalizeTradesService } from '../normalizeTrades/normalizeTrades.service';
@@ -303,10 +303,14 @@ export class ReportService {
         : this.getReport.bind(this);
 
     if (files.length === 1) {
-      return getReportFunction(
-        this.readReport(files.at(0)).trades.detailed,
+      const report = this.readReport(files.at(0));
+
+      const trades = this.normalizeTradeService.getReportByStockExchange(
+        report,
         stockExchange,
       );
+
+      return getReportFunction(trades, stockExchange);
     }
 
     const reports: IFreedomFinanceReport[] = [];
@@ -329,10 +333,16 @@ export class ReportService {
       if (index !== sortedReportsByDate.length - 1) {
         const previousDeals = remainedDealsMap.get(index - 1) || [];
 
+        const currentTrades =
+          this.normalizeTradeService.getReportByStockExchange(
+            statement,
+            stockExchange,
+          );
+
         const deals = await this.getPrevTrades(
           previousDeals.length
-            ? [...previousDeals, ...statement.trades.detailed]
-            : statement.trades.detailed,
+            ? [...previousDeals, ...currentTrades]
+            : currentTrades,
           stockExchange,
         );
 
@@ -341,14 +351,11 @@ export class ReportService {
         }
 
         if ((deals as ITrade[]).length) {
-          remainedDealsMap.get(index)?.push(...(deals as ITrade[]));
+          remainedDealsMap.get(index)?.push(...deals);
         }
 
-        if (
-          index === sortedReportsByDate.length - 2 &&
-          (deals as ITrade[]).length
-        ) {
-          dealsToCalculate.push(...(deals as ITrade[]));
+        if (index === sortedReportsByDate.length - 2 && deals.length) {
+          dealsToCalculate.push(...deals);
         }
       }
     }
@@ -451,7 +458,7 @@ export class ReportService {
 
   async calculateDividends(file: Express.Multer.File) {
     const corporateActions = this.readReport(file).corporate_actions
-      .detailed as ICorporateAction[];
+      .detailed as IFreedomFinanceCorporateAction[];
 
     const filteredActionsByDividend = corporateActions.filter(
       (action) => action.type_id === 'dividend',

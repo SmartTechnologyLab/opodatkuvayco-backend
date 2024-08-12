@@ -16,7 +16,7 @@ jest.mock('../../normalizeTrades/normalizeTrades.service', () => {
   return {
     NormalizeTradesService: jest.fn().mockImplementation(() => {
       return {
-        normalizeTrades: jest.fn(),
+        getReportByStockExchange: jest.fn(),
       };
     }),
   };
