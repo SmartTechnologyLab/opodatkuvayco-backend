@@ -8,6 +8,7 @@ import {
 import { ReportService } from './report.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Deal, IDealReport } from './types';
+import { StockExchange } from '../normalizeTrades/constants';
 
 @Controller('report')
 export class ReportController {
@@ -20,7 +21,11 @@ export class ReportController {
     @UploadedFiles() files: Express.Multer.File[],
   ): Promise<IDealReport<Deal>> {
     try {
-      return this.reportService.handleReports(files, type);
+      return this.reportService.handleReports(
+        files,
+        type,
+        StockExchange.FREEDOM_FINANCE,
+      );
     } catch (error) {
       throw new Error(error);
     }

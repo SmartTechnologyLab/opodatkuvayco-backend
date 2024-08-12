@@ -19,24 +19,35 @@ export interface IDealReport<T> {
   deals: T[];
 }
 
-export interface ITrades {
+export type GrouppedTrades = { [key: string]: ITrade[] };
+
+export interface ITrade {
+  date: string;
+  price: number;
+  commission: number;
+  operation: OperationType;
+  quantity: number;
+  ticker: string;
+  currency: string;
+}
+
+export interface IFreedomFinanceTrade {
   date: string;
   p: number;
   q: number;
   commission: number;
   operation: OperationType;
-  summ: number;
   instr_nm: string;
   curr_c: string;
 }
 
-export interface IReport {
+export interface IFreedomFinanceReport {
   date_start: string;
   corporate_actions: {
     detailed: ICorporateAction[];
   };
   trades: {
-    detailed: ITrades[];
+    detailed: IFreedomFinanceTrade[];
   };
 }
 

@@ -10,6 +10,17 @@ import {
   shortResultDeals,
 } from './__fixtures__/resultDeals';
 import { INestApplication } from '@nestjs/common';
+import { NormalizeTradesService } from '../../normalizeTrades/normalizeTrades.service';
+
+jest.mock('../../normalizeTrades/normalizeTrades.service', () => {
+  return {
+    NormalizeTradesService: jest.fn().mockImplementation(() => {
+      return {
+        normalizeTrades: jest.fn(),
+      };
+    }),
+  };
+});
 
 jest.mock('../../currencyExchange/currencyExchange.service', () => {
   return {
@@ -35,6 +46,10 @@ describe('Report Controller', () => {
         {
           provide: CurrencyExchangeService,
           useValue: new CurrencyExchangeService(),
+        },
+        {
+          provide: NormalizeTradesService,
+          useValue: new NormalizeTradesService(),
         },
       ],
     }).compile();

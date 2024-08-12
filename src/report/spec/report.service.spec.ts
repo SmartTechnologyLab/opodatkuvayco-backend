@@ -1,11 +1,20 @@
 import { ReportService } from '../report.service';
 import { CurrencyExchangeService } from '../../currencyExchange/currencyExchange.service';
 import { trades, tradesNextYear } from './__fixtures__/report';
-import { expectedGroupedTrades } from './__fixtures__/dealsExtended';
-import { Deal, IDealReport, ITrades } from '../types';
+import {
+  expectedGroupedTrades,
+  groupedDealsToBeRejected,
+} from './__fixtures__/dealsExtended';
+import { Deal, IDealReport, ITrade } from '../types';
+import { NormalizeTradesService } from '../../normalizeTrades/normalizeTrades.service';
+import { StockExchange } from '../../normalizeTrades/constants';
+import { clone } from 'ramda';
 
 const mockGetCurrencyExchange = jest.fn().mockResolvedValue({ rate: 44 });
+
 const mockFormatDateForCurrencyExchange = jest.fn();
+
+const mockGroupTradesByTicker = jest.fn();
 
 jest.mock('../../currencyExchange/currencyExchange.service', () => {
   return {
@@ -18,13 +27,31 @@ jest.mock('../../currencyExchange/currencyExchange.service', () => {
   };
 });
 
+jest.mock('../../normalizeTrades/normalizeTrades.service', () => {
+  return {
+    NormalizeTradesService: jest.fn().mockImplementation(() => {
+      return {
+        normalizeTrades: jest.fn(),
+        groupTradesByTicker: mockGroupTradesByTicker,
+      };
+    }),
+  };
+});
+
 describe('Report Service', () => {
   let currencyExchangeService: CurrencyExchangeService;
   let reportService: ReportService;
+  let normalizeTradesService: NormalizeTradesService;
 
   beforeEach(() => {
     currencyExchangeService = new CurrencyExchangeService();
-    reportService = new ReportService(currencyExchangeService);
+    normalizeTradesService = new NormalizeTradesService();
+    reportService = new ReportService(
+      currencyExchangeService,
+      normalizeTradesService,
+    );
+
+    mockGroupTradesByTicker.mockReturnValue(clone(expectedGroupedTrades));
   });
 
   afterEach(() => {
@@ -35,28 +62,6 @@ describe('Report Service', () => {
     expect(reportService).toBeDefined();
   });
 
-  describe('group trades by ticker', () => {
-    it('group trades by ticker', () => {
-      const groupedTrades = reportService.groupTradesByTicker(trades);
-
-      expect(groupedTrades).toMatchSnapshot();
-    });
-
-    it('ticker not contains extra signs', () => {
-      const groupedTrades = reportService.groupTradesByTicker(trades);
-
-      expect(Object.keys(groupedTrades)).toHaveLength(
-        Object.keys(expectedGroupedTrades).length,
-      );
-
-      Object.entries(groupedTrades).forEach(([, trades]) => {
-        trades.forEach((trade) => {
-          expect(trade.instr_nm).not.toContain('.');
-        });
-      });
-    });
-  });
-
   describe('report extended', () => {
     it('calculated deals', async () => {
       const TOTAL = -2790.19;
@@ -64,6 +69,7 @@ describe('Report Service', () => {
 
       const dealsExtended = (await reportService.getReportExtended(
         trades,
+        StockExchange.FREEDOM_FINANCE,
       )) as IDealReport<Deal>;
 
       expect(dealsExtended.deals).toHaveLength(8);
@@ -78,34 +84,33 @@ describe('Report Service', () => {
     it('returns object with certain keys', async () => {
       const dealsExtended = (await reportService.getReportExtended(
         trades,
+        StockExchange.FREEDOM_FINANCE,
       )) as IDealReport<Deal>;
 
       expect(Object.keys(dealsExtended).length).toEqual(4);
     });
 
     it('throw an error when trade with operation sell is left', async () => {
+      mockGroupTradesByTicker.mockReturnValue(groupedDealsToBeRejected);
+
       await expect(async () => {
-        await reportService.getReportExtended(tradesNextYear);
+        await reportService.getReportExtended(
+          tradesNextYear,
+          StockExchange.FREEDOM_FINANCE,
+        );
       }).rejects.toThrow('Not enough buy deals');
-    });
-
-    it('setting isPrevDeal to true returns trades that were not sold', async () => {
-      const remainedDeals = (await reportService.getPrevTrades(
-        trades,
-      )) as ITrades[];
-
-      expect(remainedDeals).toMatchSnapshot();
-      expect(remainedDeals).toHaveLength(1);
-      expect(Array.isArray(remainedDeals)).toBeTruthy();
     });
   });
 
-  describe('getReport', () => {
-    it('returns deals that is summed by ticker', async () => {
-      const report = await reportService.getReport(trades);
+  describe('getPrevTrades', () => {
+    it('return not sold trades from past years', async () => {
+      const prevTrades = await reportService.getPrevTrades(
+        trades,
+        StockExchange.FREEDOM_FINANCE,
+      );
 
-      expect(Object.keys(report).length).toEqual(4);
-      expect(report).toMatchSnapshot();
+      expect(prevTrades).toHaveLength(1);
+      expect(prevTrades).toMatchSnapshot();
     });
   });
 
@@ -153,14 +158,13 @@ describe('Report Service', () => {
     });
 
     it('founds deal when date and price is equal', () => {
-      const trade: ITrades = {
+      const trade: ITrade = {
         date: '2021-06-07 11:48:21',
-        instr_nm: 'FIPO',
+        ticker: 'FIPO',
         operation: 'buy',
-        p: 35.53,
-        curr_c: 'USD',
-        q: 13,
-        summ: 461.89,
+        price: 35.53,
+        currency: 'USD',
+        quantity: 13,
         commission: 2.31,
       };
 
@@ -172,15 +176,28 @@ describe('Report Service', () => {
       expect(founDeal).toEqual(trade);
     });
 
+    describe('getReport', () => {
+      it('returns deals that is summed by ticker', async () => {
+        mockGroupTradesByTicker.mockReturnValue(expectedGroupedTrades);
+
+        const report = await reportService.getReport(
+          trades,
+          StockExchange.FREEDOM_FINANCE,
+        );
+
+        expect(Object.keys(report).length).toEqual(4);
+        expect(report).toMatchSnapshot();
+      });
+    });
+
     it('founds deal when date and price is equal', () => {
-      const trade: ITrades = {
+      const trade: ITrade = {
         date: '2021-06-07 11:48:21',
-        instr_nm: 'FIPO',
+        ticker: 'FIPO',
         operation: 'buy',
-        p: 100.53,
-        curr_c: 'USD',
-        q: 13,
-        summ: 461.89,
+        price: 100.53,
+        currency: 'USD',
+        quantity: 13,
         commission: 2.31,
       };
 
@@ -194,25 +211,23 @@ describe('Report Service', () => {
   });
 
   describe('fetch purchase and sell rate', () => {
-    const purchaseTrade: ITrades = {
+    const purchaseTrade: ITrade = {
       date: '2021-06-07 11:48:21',
-      instr_nm: 'FIPO',
+      ticker: 'FIPO',
       operation: 'buy',
-      p: 100.53,
-      curr_c: 'USD',
-      q: 13,
-      summ: 461.89,
+      price: 100.53,
+      currency: 'USD',
+      quantity: 13,
       commission: 2.31,
     };
 
-    const sellTrade: ITrades = {
+    const sellTrade: ITrade = {
       date: '2021-06-07 11:48:21',
-      instr_nm: 'FIPO',
+      ticker: 'FIPO',
       operation: 'sell',
-      p: 100.53,
-      curr_c: 'USD',
-      q: 13,
-      summ: 461.89,
+      price: 100.53,
+      currency: 'USD',
+      quantity: 13,
       commission: 2.31,
     };
 
@@ -225,12 +240,12 @@ describe('Report Service', () => {
       );
 
       expect(mockGetCurrencyExchange).toHaveBeenCalledWith(
-        purchaseTrade.curr_c,
+        purchaseTrade.currency,
         purchaseTrade.date,
       );
 
       expect(mockGetCurrencyExchange).toHaveBeenCalledWith(
-        sellTrade.curr_c,
+        sellTrade.currency,
         sellTrade.date,
       );
 
