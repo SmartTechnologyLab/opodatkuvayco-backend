@@ -60,18 +60,18 @@ describe('Normalize Trades Service', () => {
     expect(normalizedFreedomFinanceTrades).toMatchSnapshot();
   });
 
-  describe('getReportByStockExchange returns trades by stock exchange', () => {
-    it('returns trades for freedom finance stock exchange', () => {
-      const trades = normalizeTradesService.getReportByStockExchange(
-        {
-          trades: { detailed: freedomFinanceTrades },
-        },
-        StockExchange.FREEDOM_FINANCE,
-      );
+  // describe('getReportByStockExchange returns trades by stock exchange', () => {
+  //   it('returns trades for freedom finance stock exchange', () => {
+  //     const trades = norma.getReportByStockExchange(
+  //       {
+  //         trades: { detailed: freedomFinanceTrades },
+  //       },
+  //       StockExchange.FREEDOM_FINANCE,
+  //     );
 
-      expect(trades).toMatchSnapshot();
-    });
-  });
+  //     expect(trades).toMatchSnapshot();
+  //   });
+  // });
 
   describe('validate if object is already consist of ITrade interface', () => {
     it('returns true if object contains property of ticker', () => {

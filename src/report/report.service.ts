@@ -1,23 +1,19 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { clone, reverse } from 'ramda';
 import { CurrencyExchangeService } from '../currencyExchange/currencyExchange.service';
-import {
-  Deal,
-  DealOptions,
-  ITrade,
-  IDealReport,
-  IFreedomFinanceReport,
-  IFreedomFinanceCorporateAction,
-} from './types';
+import { Deal, DealOptions, ITrade, IDealReport, IReport } from './types';
 import { sortByDate } from './helpers';
 import { NormalizeTradesService } from '../normalizeTrades/normalizeTrades.service';
 import { StockExchange } from '../normalizeTrades/constants';
+import { IFreedomFinanceCorporateAction } from './types/freedomFinance';
+import { NormalizeReportsService } from '../normalizeReports/normalizeReports.service';
 
 @Injectable()
 export class ReportService {
   constructor(
     private currencyExchangeService: CurrencyExchangeService,
     private normalizeTradeService: NormalizeTradesService,
+    private normalizeReportsService: NormalizeReportsService,
   ) {}
 
   readReport(file: Express.Multer.File) {
@@ -305,7 +301,7 @@ export class ReportService {
     if (files.length === 1) {
       const report = this.readReport(files.at(0));
 
-      const trades = this.normalizeTradeService.getReportByStockExchange(
+      const { trades } = this.normalizeReportsService.getReportByStockExchange(
         report,
         stockExchange,
       );
@@ -313,17 +309,23 @@ export class ReportService {
       return getReportFunction(trades, stockExchange);
     }
 
-    const reports: IFreedomFinanceReport[] = [];
+    const reports: IReport<ITrade>[] = [];
     const dealsToCalculate: ITrade[] = [];
 
     files.forEach((file) => {
-      reports.push(this.readReport(file));
+      const report = this.readReport(file);
+
+      reports.push(
+        this.normalizeReportsService.getReportByStockExchange(
+          report,
+          stockExchange,
+        ) as IReport<ITrade>,
+      );
     });
 
-    const sortedReportsByDate = sortByDate(reports);
+    const sortedReportsByDate: IReport<ITrade>[] = sortByDate(reports);
 
-    const reversedReports: IFreedomFinanceReport[] =
-      reverse(sortedReportsByDate);
+    const reversedReports: IReport<ITrade>[] = reverse(sortedReportsByDate);
 
     const remainedDealsMap = new Map<number, ITrade[]>();
 
@@ -333,16 +335,10 @@ export class ReportService {
       if (index !== sortedReportsByDate.length - 1) {
         const previousDeals = remainedDealsMap.get(index - 1) || [];
 
-        const currentTrades =
-          this.normalizeTradeService.getReportByStockExchange(
-            statement,
-            stockExchange,
-          );
-
         const deals = await this.getPrevTrades(
           previousDeals.length
-            ? [...previousDeals, ...currentTrades]
-            : currentTrades,
+            ? [...previousDeals, ...statement.trades]
+            : statement.trades,
           stockExchange,
         );
 
@@ -361,7 +357,7 @@ export class ReportService {
     }
 
     return getReportFunction(
-      [...dealsToCalculate, ...sortedReportsByDate.at(0).trades.detailed],
+      [...dealsToCalculate, ...sortedReportsByDate.at(0).trades],
       stockExchange,
     );
   }

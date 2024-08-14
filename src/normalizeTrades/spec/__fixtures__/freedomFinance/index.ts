@@ -1,4 +1,5 @@
-import { IFreedomFinanceTrade, ITrade } from '../../../../report/types';
+import { IFreedomFinanceTrade } from 'src/report/types/freedomFinance';
+import { ITrade } from '../../../../report/types';
 
 export const freedomFinanceTrades: IFreedomFinanceTrade[] = [
   {

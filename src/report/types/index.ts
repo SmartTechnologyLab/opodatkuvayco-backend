@@ -1,16 +1,4 @@
-type FreedomFinanceCorporateActionTypeId = 'dividend' | 'maturity';
-
-type OperationType = 'buy' | 'sell';
-
-export interface IFreedomFinanceCorporateAction {
-  date: string;
-  type: string;
-  type_id: FreedomFinanceCorporateActionTypeId;
-  amount: number;
-  ticker: string;
-  isin: string;
-  currency: string;
-}
+export type OperationType = 'buy' | 'sell';
 
 export interface IDealReport<T> {
   total: number;
@@ -21,6 +9,11 @@ export interface IDealReport<T> {
 
 export type GrouppedTrades = { [key: string]: ITrade[] };
 
+export interface IReport<T> {
+  dateStart: string;
+  trades: T[];
+}
+
 export interface ITrade {
   date: string;
   price: number;
@@ -29,26 +22,6 @@ export interface ITrade {
   quantity: number;
   ticker: string;
   currency: string;
-}
-
-export interface IFreedomFinanceTrade {
-  date: string;
-  p: number;
-  q: number;
-  commission: number;
-  operation: OperationType;
-  instr_nm: string;
-  curr_c: string;
-}
-
-export interface IFreedomFinanceReport {
-  date_start: string;
-  corporate_actions: {
-    detailed: IFreedomFinanceCorporateAction[];
-  };
-  trades: {
-    detailed: IFreedomFinanceTrade[];
-  };
 }
 
 export type DealOptions = {

@@ -186,39 +186,7 @@ exports[`Report Controller Post /deals should return extended report when query 
 }
 `;
 
-exports[`Report Controller Post /deals when getting two files took the latest by the date as a year for calculate and get prev buys from previous years 1`] = `
-{
-  "deals": [
-    {
-      "percent": 0.05947617315387421,
-      "purchase": {
-        "commission": 1.73,
-        "date": "2021-06-10T15:41:12.000Z",
-        "price": 10.65,
-        "rate": 44,
-        "sum": 106.5,
-        "uah": 4838.24,
-      },
-      "quantity": 10,
-      "sale": {
-        "commission": 1.73,
-        "date": "2022-06-10T15:41:12.000Z",
-        "price": 11.65,
-        "rate": 44,
-        "sum": 116.5,
-        "uah": 5126,
-      },
-      "ticker": "APPL",
-      "total": 287.7600000000002,
-    },
-  ],
-  "total": 287.7600000000002,
-  "totalMilitaryFee": 4.316400000000003,
-  "totalTaxFee": 51.79680000000004,
-}
-`;
-
-exports[`Report Controller Post /deals when query is empty it should return short deals 1`] = `
+exports[`Report Controller Post /deals should return short report when query type is empty 1`] = `
 {
   "deals": [
     {

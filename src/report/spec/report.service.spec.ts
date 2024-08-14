@@ -9,57 +9,64 @@ import { Deal, IDealReport, ITrade } from '../types';
 import { NormalizeTradesService } from '../../normalizeTrades/normalizeTrades.service';
 import { StockExchange } from '../../normalizeTrades/constants';
 import { clone } from 'ramda';
+import { resultDeals, resultDealsNextYear } from './__fixtures__/resultDeals';
+import { NormalizeReportsService } from '../../normalizeReports/normalizeReports.service';
 
-const mockGetCurrencyExchange = jest.fn().mockResolvedValue({ rate: 44 });
+const mockGetCurrencyExchange = jest.fn();
 
 const mockFormatDateForCurrencyExchange = jest.fn();
 
 const mockGroupTradesByTicker = jest.fn();
 
-jest.mock('../../currencyExchange/currencyExchange.service', () => {
-  return {
-    CurrencyExchangeService: jest.fn().mockImplementation(() => {
-      return {
-        getCurrencyExchange: mockGetCurrencyExchange,
-        formatDateForCurrencyExchange: mockFormatDateForCurrencyExchange,
-      };
-    }),
-  };
-});
+const mockGetReportByStockExchange = jest.fn();
 
-jest.mock('../../normalizeTrades/normalizeTrades.service', () => {
-  return {
-    NormalizeTradesService: jest.fn().mockImplementation(() => {
-      return {
-        normalizeTrades: jest.fn(),
-        groupTradesByTicker: mockGroupTradesByTicker,
-      };
-    }),
-  };
-});
+jest.mock('../../currencyExchange/currencyExchange.service', () => ({
+  CurrencyExchangeService: jest.fn().mockImplementation(() => {
+    return {
+      getCurrencyExchange: mockGetCurrencyExchange,
+      formatDateForCurrencyExchange: mockFormatDateForCurrencyExchange,
+    };
+  }),
+}));
+
+jest.mock('../../normalizeTrades/normalizeTrades.service', () => ({
+  NormalizeTradesService: jest.fn().mockImplementation(() => {
+    return {
+      normalizeTrades: jest.fn(),
+      groupTradesByTicker: mockGroupTradesByTicker,
+    };
+  }),
+}));
 
 describe('Report Service', () => {
   let currencyExchangeService: CurrencyExchangeService;
   let reportService: ReportService;
   let normalizeTradesService: NormalizeTradesService;
+  let normalizeReportsService: NormalizeReportsService;
 
   beforeEach(() => {
     currencyExchangeService = new CurrencyExchangeService();
     normalizeTradesService = new NormalizeTradesService();
+    normalizeReportsService = new NormalizeReportsService();
+
     reportService = new ReportService(
       currencyExchangeService,
       normalizeTradesService,
+      normalizeReportsService,
     );
 
     mockGroupTradesByTicker.mockReturnValue(clone(expectedGroupedTrades));
+
+    mockGetCurrencyExchange.mockResolvedValue({ rate: 44 });
+
+    mockGetReportByStockExchange.mockReturnValue({
+      trades: trades,
+      dateStart: '3131',
+    });
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-  });
-
-  it('service should be defined', () => {
-    expect(reportService).toBeDefined();
   });
 
   describe('report extended', () => {
@@ -251,6 +258,102 @@ describe('Report Service', () => {
 
       expect(mockGetCurrencyExchange).toHaveBeenCalledTimes(2);
       expect(rates).toEqual([RATE, RATE]);
+    });
+  });
+
+  describe('handleReports', () => {
+    it('returns report when arguments passed', async () => {
+      jest.spyOn(reportService, 'readReport').mockReturnValue({
+        trades: { detailed: trades },
+        date_start: '3131',
+        corporate_actions: { detailed: [] },
+      });
+
+      jest
+        .spyOn(normalizeReportsService, 'getReportByStockExchange')
+        .mockReturnValue({
+          dateStart: '3131',
+          trades: trades,
+        });
+
+      const mockFile = {
+        buffer: Buffer.from(JSON.stringify({ trades: { detailed: trades } })),
+      } as Express.Multer.File;
+
+      jest
+        .spyOn(reportService, 'getReportExtended')
+        .mockResolvedValue(resultDeals);
+
+      const report = await reportService.handleReports(
+        [mockFile],
+        'extended',
+        StockExchange.FREEDOM_FINANCE,
+      );
+
+      expect(report).toMatchSnapshot();
+    });
+
+    it('takes trades that were not sold from previous period to new one', async () => {
+      jest
+        .spyOn(reportService, 'readReport')
+        .mockReturnValueOnce({
+          trades: { detailed: trades },
+          date_start: '2021-04-24 23:59:59',
+          corporate_actions: { detailed: [] },
+        })
+        .mockReturnValue({
+          trades: { detailed: tradesNextYear },
+          date_start: '2022-04-24 23:59:59',
+          corporate_actions: { detailed: [] },
+        });
+
+      jest.spyOn(reportService, 'getPrevTrades').mockResolvedValue(trades);
+
+      jest
+        .spyOn(reportService, 'getReportExtended')
+        .mockResolvedValueOnce(resultDealsNextYear);
+
+      const report2021 = {
+        buffer: Buffer.from(JSON.stringify({ trades: { detailed: trades } })),
+      } as Express.Multer.File;
+
+      const report2022 = {
+        buffer: Buffer.from(
+          JSON.stringify({ trades: { detailed: tradesNextYear } }),
+        ),
+      } as Express.Multer.File;
+
+      const report = await reportService.handleReports(
+        [report2021, report2022],
+        'extended',
+        StockExchange.FREEDOM_FINANCE,
+      );
+
+      expect(report).toMatchSnapshot();
+    });
+
+    it('when reportType is empty it should return short deals', async () => {
+      const mockFile = {
+        buffer: Buffer.from(JSON.stringify({ trades: { detailed: trades } })),
+      } as Express.Multer.File;
+
+      jest.spyOn(reportService, 'readReport').mockReturnValue({
+        trades: { detailed: trades },
+        date_start: '3131',
+        corporate_actions: { detailed: [] },
+      });
+
+      jest
+        .spyOn(reportService, 'getReportExtended')
+        .mockResolvedValue(resultDeals);
+
+      const report = await reportService.handleReports(
+        [mockFile],
+        '',
+        StockExchange.FREEDOM_FINANCE,
+      );
+
+      expect(report).toMatchSnapshot();
     });
   });
 });
