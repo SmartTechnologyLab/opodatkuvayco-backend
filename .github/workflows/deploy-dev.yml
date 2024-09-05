@@ -46,7 +46,11 @@ jobs:
         run: npm ci
       - name: Build Project
         run: npm run build
-      - name: rsync deploy project
+      - name: Build Docker image
+        run: docker build -t myapp:latest .
+      - name: Push Docker image to registry
+        run: docker tag myapp:latest myregistry/myapp:latest
+      - name: Deploy Docker image
         uses: burnett01/rsync-deployments@5.2.1
         with:
           switches: -avzr --delete
