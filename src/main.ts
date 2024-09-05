@@ -22,8 +22,6 @@ async function bootstrap() {
     }),
   );
 
-  app.setGlobalPrefix('api');
-
   const config = new DocumentBuilder()
     .setTitle('Opodatkuvayco Backend')
     .setVersion('1.0')
@@ -33,7 +31,7 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  SwaggerModule.setup('api', app, document, {
+  SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
