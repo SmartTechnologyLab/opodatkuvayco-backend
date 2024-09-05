@@ -5,6 +5,7 @@ import { ReportModule } from './report/report.module';
 import { CurrencyExchangeModule } from './currencyExchange/currencyExchange.module';
 import { NormalizeTradesModule } from './normalizeTrades/normalizeTrades.module';
 import { NormalizeReportsModule } from './normalizeReports/normalizeReports.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { NormalizeReportsModule } from './normalizeReports/normalizeReports.modu
     NormalizeTradesModule,
     NormalizeReportsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}
