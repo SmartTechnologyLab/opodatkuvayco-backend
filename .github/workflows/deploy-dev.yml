@@ -46,11 +46,7 @@ jobs:
         run: npm ci
       - name: Build Project
         run: npm run build
-#      - name: Build Docker image
-#        run: docker build -t opodatkuvayco:latest --build-arg TZ=Europe/Kiev .
-#      - name: Push Docker image to registry
-#        run: docker tag opodatkuvayco:latest myregistry/opodatkuvayco:latest
-      - name: Deploy Docker image
+      - name: Deploy
         uses: burnett01/rsync-deployments@5.2.1
         with:
           switches: -avzr --delete
