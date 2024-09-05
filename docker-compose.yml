@@ -1,0 +1,12 @@
+services:
+  opodatkuvayco-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: opodatkuvayco-backend
+    ports:
+      - '3000:3000'
+    environment:
+      CLIENT_URL: ${CLIENT_URL}
+      NBU_API_URL: ${NBU_API_URL}
+      PORT: ${PORT}
