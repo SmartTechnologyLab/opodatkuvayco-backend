@@ -47,7 +47,7 @@ jobs:
       - name: Build Project
         run: npm run build
       - name: Build Docker image
-        run: docker build -t opodatkuvayco:latest .
+        run: docker build -t opodatkuvayco:latest --build-arg TZ=Europe/Kiev .
 #      - name: Push Docker image to registry
 #        run: docker tag opodatkuvayco:latest myregistry/opodatkuvayco:latest
       - name: Deploy Docker image

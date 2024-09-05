@@ -84,7 +84,7 @@ jobs:
       - name: Build Docker image
         run: docker build -t opodatkuvayco:latest .
       - name: Run tests in Docker
-        run: docker run --rm opodatkuvayco:latest npm run test
+        run: docker run --rm -e TZ=Europe/Kiev opodatkuvayco:latest npm run test
 
   build:
     needs: [lint, type_check, unit_tests]
