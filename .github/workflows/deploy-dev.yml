@@ -47,9 +47,9 @@ jobs:
       - name: Build Project
         run: npm run build
       - name: Build Docker image
-        run: docker build -t myapp:latest .
-      - name: Push Docker image to registry
-        run: docker tag myapp:latest myregistry/myapp:latest
+        run: docker build -t opodatkuvayco:latest .
+#      - name: Push Docker image to registry
+#        run: docker tag opodatkuvayco:latest myregistry/opodatkuvayco:latest
       - name: Deploy Docker image
         uses: burnett01/rsync-deployments@5.2.1
         with:

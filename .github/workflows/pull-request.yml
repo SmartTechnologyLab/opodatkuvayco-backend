@@ -82,9 +82,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build Docker image
-        run: docker build -t myapp-test:latest .
+        run: docker build -t opodatkuvayco:latest .
       - name: Run tests in Docker
-        run: docker run --rm myapp-test:latest npm run test
+        run: docker run --rm opodatkuvayco:latest npm run test
 
   build:
     needs: [lint, type_check, unit_tests]
