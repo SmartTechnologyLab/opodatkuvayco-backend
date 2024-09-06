@@ -1,14 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import * as dotenv from 'dotenv';
 import * as cors from 'cors';
 import * as bodyParser from 'body-parser';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
-  dotenv.config();
-
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+
+  // Get allowed origins from environment variables
+  const allowedOrigins = configService.get<string>('CLIENT_URL');
+  // Get host and port from environment variables
+  const host = configService.get<string>('HOST') || '0.0.0.0';
+  const port = parseInt(configService.get<string>('PORT'), 10) || 3000;
 
   app.use(bodyParser.json({ limit: '50mb' }));
 
@@ -16,7 +21,7 @@ async function bootstrap() {
 
   app.use(
     cors({
-      origin: process.env.CLIENT_URL,
+      origin: allowedOrigins,
       methods: ['GET', 'POST', 'PUT', 'DELETE'],
       credentials: true,
     }),
@@ -37,7 +42,7 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(process.env.PORT || 3000);
+  await app.listen(port, host);
 }
 
 bootstrap();
