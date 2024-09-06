@@ -6,9 +6,13 @@ import { CurrencyExchangeModule } from './currencyExchange/currencyExchange.modu
 import { NormalizeTradesModule } from './normalizeTrades/normalizeTrades.module';
 import { NormalizeReportsModule } from './normalizeReports/normalizeReports.module';
 import { HealthController } from './health/health.controller';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     ReportModule,
     CurrencyExchangeModule,
     NormalizeTradesModule,
