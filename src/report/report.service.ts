@@ -70,7 +70,7 @@ export class ReportService {
           while (
             deal.quantity > 0 &&
             (buyQueue.some((b) => b.quantity > 0) ||
-              this.getShortBuy(groupedTrades[ticker], deal))
+              !!this.getShortBuy(groupedTrades[ticker], deal))
           ) {
             const foundShortBuy = buyQueue.some((b) => b.quantity > 0)
               ? buyQueue.filter((b) => b.quantity > 0).at(0)

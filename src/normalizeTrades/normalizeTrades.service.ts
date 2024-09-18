@@ -12,9 +12,9 @@ export class NormalizeTradesService {
     trades: T[],
     stockExchange: StockExchange,
   ): GrouppedTrades {
-    const normalizedTickers = this.getNormalizedTrades(stockExchange, trades);
+    const normalizedTrades = this.getNormalizedTrades(stockExchange, trades);
 
-    return groupBy((deal: ITrade) => deal.ticker, normalizedTickers);
+    return groupBy((deal: ITrade) => deal.ticker, normalizedTrades);
   }
 
   getNormalizedTrades(
@@ -30,15 +30,6 @@ export class NormalizeTradesService {
         break;
     }
   }
-
-  // getReportByStockExchange<T>(report: T, stockExchange: StockExchange) {
-  //   switch (stockExchange) {
-  //     case StockExchange.FREEDOM_FINANCE:
-  //       return (report as IFreedomFinanceReport).trades.detailed;
-  //     default:
-  //       break;
-  //   }
-  // }
 
   normalizedFreedomFinanceTrades(
     trades: (IFreedomFinanceTrade | ITrade)[],
