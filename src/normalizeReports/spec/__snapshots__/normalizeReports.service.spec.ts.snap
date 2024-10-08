@@ -6,12 +6,12 @@ exports[`Normalize Report Service getReportByStockExchange should return normali
   "trades": [
     {
       "commission": 0,
-      "curr_c": "USD",
+      "currency": "USD",
       "date": "2021-01-01",
-      "instr_nm": "AAPL",
       "operation": "buy",
-      "p": 100,
-      "q": 1,
+      "price": 100,
+      "quantity": 1,
+      "ticker": "AAPL",
     },
   ],
 }

@@ -1,3 +1,33 @@
+import { StockExchange } from 'src/normalizeTrades/constants';
+
+export interface IReportService {
+  readReport: (file: Express.Multer.File) => any;
+  groupTradesByTicker: (trades: ITrade[]) => Record<ITrade['ticker'], ITrade[]>;
+  getReportExtended: (trades: ITrade[]) => Promise<IDealReport<Deal>>;
+  getPrevTrades: (trades: ITrade[]) => Promise<ITrade[]>;
+  getReport: (trades: ITrade[]) => Promise<IDealReport<Deal>>;
+  getShortBuy: (trades: ITrade[], currentSellTrade: ITrade) => ITrade;
+  setDeal: (
+    purchaseDeal: ITrade,
+    sellDeal: ITrade,
+    sellComission?: number,
+  ) => Promise<Deal>;
+  handleReports: (
+    files: Express.Multer.File[],
+    reportType: string,
+    stockExchange: StockExchange,
+  ) => Promise<IDealReport<Deal>>;
+  fetchPurchaseAndSellRate: (
+    purchaseDeal: ITrade,
+    sellDeal: ITrade,
+  ) => Promise<[number, number]>;
+  findDealByDateAndPrice: (deals: ITrade[], currentDeal: ITrade) => ITrade;
+  getTotalTaxFee: (total: number) => number;
+  getMilitaryFee: (total: number) => number;
+  getDeal: (options: DealOptions) => Deal;
+  calculateDividends: (file: Express.Multer.File) => Promise<any>;
+}
+
 export type OperationType = 'buy' | 'sell';
 
 export interface IDealReport<T> {

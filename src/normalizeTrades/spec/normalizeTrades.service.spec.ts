@@ -12,34 +12,6 @@ describe('Normalize Trades Service', () => {
     normalizeTradesService = new NormalizeTradesService();
   });
 
-  describe('groupTradesByTicker', () => {
-    it('method should have been called with certain params', () => {
-      const groupTradesByTickerSpy = jest.spyOn(
-        normalizeTradesService,
-        'groupTradesByTicker',
-      );
-
-      normalizeTradesService.groupTradesByTicker(
-        freedomFinanceTrades,
-        StockExchange.FREEDOM_FINANCE,
-      );
-
-      expect(groupTradesByTickerSpy).toHaveBeenCalledWith(
-        freedomFinanceTrades,
-        StockExchange.FREEDOM_FINANCE,
-      );
-    });
-
-    it('groups trades by ticker', () => {
-      const groupedTrades = normalizeTradesService.groupTradesByTicker(
-        freedomFinanceTrades,
-        StockExchange.FREEDOM_FINANCE,
-      );
-
-      expect(groupedTrades).toMatchSnapshot();
-    });
-  });
-
   describe('normalize trades returns trades converted to interface ITrade', () => {
     it('freedom finance trades', () => {
       const normalizedTrades = normalizeTradesService.getNormalizedTrades(
@@ -59,19 +31,6 @@ describe('Normalize Trades Service', () => {
 
     expect(normalizedFreedomFinanceTrades).toMatchSnapshot();
   });
-
-  // describe('getReportByStockExchange returns trades by stock exchange', () => {
-  //   it('returns trades for freedom finance stock exchange', () => {
-  //     const trades = norma.getReportByStockExchange(
-  //       {
-  //         trades: { detailed: freedomFinanceTrades },
-  //       },
-  //       StockExchange.FREEDOM_FINANCE,
-  //     );
-
-  //     expect(trades).toMatchSnapshot();
-  //   });
-  // });
 
   describe('validate if object is already consist of ITrade interface', () => {
     it('returns true if object contains property of ticker', () => {

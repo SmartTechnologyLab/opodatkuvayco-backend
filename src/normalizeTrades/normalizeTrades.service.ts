@@ -2,43 +2,25 @@ import { Injectable } from '@nestjs/common';
 import { GrouppedTrades, ITrade } from 'src/report/types';
 import { groupBy } from 'ramda';
 import { StockExchange } from './constants';
-import { IFreedomFinanceTrade } from 'src/report/types/freedomFinance';
+import { IFreedomFinanceTrade } from '../report/types/freedomFinance';
 
 @Injectable()
 export class NormalizeTradesService {
   constructor() {}
 
-  groupTradesByTicker<T>(
-    trades: T[],
-    stockExchange: StockExchange,
-  ): GrouppedTrades {
-    const normalizedTickers = this.getNormalizedTrades(stockExchange, trades);
-
-    return groupBy((deal: ITrade) => deal.ticker, normalizedTickers);
-  }
+  private MAP_STOCK_EXCHANGE_TO_TRADE_TYPE = {
+    [StockExchange.FREEDOM_FINANCE]:
+      this.normalizedFreedomFinanceTrades.bind(this),
+  };
 
   getNormalizedTrades(
     stockExchange: StockExchange,
     trades: unknown[],
   ): ITrade[] {
-    switch (stockExchange) {
-      case StockExchange.FREEDOM_FINANCE:
-        return this.normalizedFreedomFinanceTrades(
-          trades as IFreedomFinanceTrade[],
-        );
-      default:
-        break;
-    }
+    return this.MAP_STOCK_EXCHANGE_TO_TRADE_TYPE[stockExchange](
+      trades as IFreedomFinanceTrade[],
+    );
   }
-
-  // getReportByStockExchange<T>(report: T, stockExchange: StockExchange) {
-  //   switch (stockExchange) {
-  //     case StockExchange.FREEDOM_FINANCE:
-  //       return (report as IFreedomFinanceReport).trades.detailed;
-  //     default:
-  //       break;
-  //   }
-  // }
 
   normalizedFreedomFinanceTrades(
     trades: (IFreedomFinanceTrade | ITrade)[],
@@ -48,17 +30,15 @@ export class NormalizeTradesService {
       (trade) => !this.isITrade(trade),
     ) as IFreedomFinanceTrade[];
 
-    const mappedTrades = nonConformingTrades.map((trade) => {
-      return {
-        ticker: trade.instr_nm?.split('.').at(0),
-        price: trade.p,
-        commission: trade.commission,
-        operation: trade.operation,
-        quantity: trade.q,
-        date: trade.date,
-        currency: trade.curr_c,
-      };
-    });
+    const mappedTrades: ITrade[] = nonConformingTrades.map((trade) => ({
+      ticker: trade.instr_nm?.split('.').at(0),
+      price: trade.p,
+      commission: trade.commission,
+      operation: trade.operation,
+      quantity: trade.q,
+      date: trade.date,
+      currency: trade.curr_c,
+    }));
 
     return [...conformingTrades, ...mappedTrades];
   }

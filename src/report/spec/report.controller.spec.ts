@@ -20,6 +20,7 @@ jest.mock('../report.service', () => ({
 describe('Report Controller', () => {
   let reportService: ReportService;
   let reportController: ReportController;
+  let normalizeTradeService: NormalizeTradesService;
   let app: INestApplication;
 
   beforeEach(async () => {
@@ -37,7 +38,7 @@ describe('Report Controller', () => {
         },
         {
           provide: NormalizeReportsService,
-          useValue: new NormalizeReportsService(),
+          useValue: new NormalizeReportsService(normalizeTradeService),
         },
       ],
     }).compile();

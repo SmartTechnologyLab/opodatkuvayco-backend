@@ -1,12 +1,17 @@
 import { IFreedomFinanceReport } from 'src/report/types/freedomFinance';
 import { NormalizeReportsService } from '../normalizeReports.service';
 import { StockExchange } from '../../normalizeTrades/constants';
+import { NormalizeTradesService } from '../../normalizeTrades/normalizeTrades.service';
 
 describe('Normalize Report Service', () => {
+  let normalizeTradesService: NormalizeTradesService;
   let normalizeReportsService: NormalizeReportsService;
 
   beforeEach(() => {
-    normalizeReportsService = new NormalizeReportsService();
+    normalizeTradesService = new NormalizeTradesService();
+    normalizeReportsService = new NormalizeReportsService(
+      normalizeTradesService,
+    );
   });
 
   describe('getReportByStockExchange should return normalize report', () => {

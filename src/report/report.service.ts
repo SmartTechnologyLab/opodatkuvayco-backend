@@ -1,18 +1,23 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { clone, reverse } from 'ramda';
+import { clone, reverse, groupBy } from 'ramda';
 import { CurrencyExchangeService } from '../currencyExchange/currencyExchange.service';
-import { Deal, DealOptions, ITrade, IDealReport, IReport } from './types';
+import {
+  Deal,
+  DealOptions,
+  ITrade,
+  IDealReport,
+  IReport,
+  IReportService,
+} from './types';
 import { sortByDate } from './helpers';
-import { NormalizeTradesService } from '../normalizeTrades/normalizeTrades.service';
 import { StockExchange } from '../normalizeTrades/constants';
 import { IFreedomFinanceCorporateAction } from './types/freedomFinance';
 import { NormalizeReportsService } from '../normalizeReports/normalizeReports.service';
 
 @Injectable()
-export class ReportService {
+export class ReportService implements IReportService {
   constructor(
     private currencyExchangeService: CurrencyExchangeService,
-    private normalizeTradeService: NormalizeTradesService,
     private normalizeReportsService: NormalizeReportsService,
   ) {}
 
@@ -25,16 +30,18 @@ export class ReportService {
     }
   }
 
-  async getReportExtended<T>(
-    trades: T[],
-    stockExhange: StockExchange,
-  ): Promise<IDealReport<Deal>> {
+  groupTradesByTicker(trades: ITrade[]): Record<ITrade['ticker'], ITrade[]> {
+    return groupBy((deal: ITrade) => {
+      const ticker = deal.ticker.split('.').at(0);
+
+      return ticker;
+    }, trades);
+  }
+
+  async getReportExtended(trades: ITrade[]): Promise<IDealReport<Deal>> {
     const deals: Deal[] = [];
 
-    const groupedTrades = this.normalizeTradeService.groupTradesByTicker(
-      clone(trades),
-      stockExhange,
-    );
+    const groupedTrades = this.groupTradesByTicker(clone(trades));
 
     for (const ticker in groupedTrades) {
       let buyQueue: ITrade[] = [];
@@ -131,16 +138,10 @@ export class ReportService {
     };
   }
 
-  async getPrevTrades<T>(
-    trades: T[],
-    stockExchange: StockExchange,
-  ): Promise<ITrade[]> {
+  async getPrevTrades(trades: ITrade[]): Promise<ITrade[]> {
     const remainedPurchaseDeals: ITrade[] = [];
 
-    const groupedTrades = this.normalizeTradeService.groupTradesByTicker(
-      clone(trades),
-      stockExchange,
-    );
+    const groupedTrades = this.groupTradesByTicker(clone(trades));
 
     for (const ticker in groupedTrades) {
       let buyQueue: ITrade[] = [];
@@ -212,14 +213,8 @@ export class ReportService {
     return remainedPurchaseDeals;
   }
 
-  async getReport(
-    report: ITrade[],
-    stockExchange: StockExchange,
-  ): Promise<IDealReport<Deal>> {
-    const trades = (await this.getReportExtended(
-      report,
-      stockExchange,
-    )) as IDealReport<Deal>;
+  async getReport(report: ITrade[]): Promise<IDealReport<Deal>> {
+    const trades = (await this.getReportExtended(report)) as IDealReport<Deal>;
 
     const deals = Object.values(
       trades.deals.reduce(
@@ -293,7 +288,10 @@ export class ReportService {
     reportType: string,
     stockExchange: StockExchange,
   ): Promise<IDealReport<Deal>> {
-    const getReportFunction =
+    const getReportFunction: (
+      trades: ITrade[],
+      stockExchange: StockExchange,
+    ) => Promise<IDealReport<Deal>> =
       reportType === 'extended'
         ? this.getReportExtended.bind(this)
         : this.getReport.bind(this);
@@ -339,14 +337,13 @@ export class ReportService {
           previousDeals.length
             ? [...previousDeals, ...statement.trades]
             : statement.trades,
-          stockExchange,
         );
 
         if (!remainedDealsMap.has(index)) {
           remainedDealsMap.set(index, []);
         }
 
-        if ((deals as ITrade[]).length) {
+        if (deals.length) {
           remainedDealsMap.get(index)?.push(...deals);
         }
 
@@ -362,7 +359,10 @@ export class ReportService {
     );
   }
 
-  async fetchPurchaseAndSellRate(purchaseDeal: ITrade, sellDeal: ITrade) {
+  async fetchPurchaseAndSellRate(
+    purchaseDeal: ITrade,
+    sellDeal: ITrade,
+  ): Promise<[number, number]> {
     const [{ rate: purchaseRate }, { rate: sellRate }] = await Promise.all([
       this.currencyExchangeService.getCurrencyExchange(
         purchaseDeal.currency,

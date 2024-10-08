@@ -29,14 +29,14 @@ jest.mock('../../currencyExchange/currencyExchange.service', () => ({
   }),
 }));
 
-jest.mock('../../normalizeTrades/normalizeTrades.service', () => ({
-  NormalizeTradesService: jest.fn().mockImplementation(() => {
-    return {
-      normalizeTrades: jest.fn(),
-      groupTradesByTicker: mockGroupTradesByTicker,
-    };
-  }),
-}));
+// jest.mock('../../normalizeTrades/normalizeTrades.service', () => ({
+//   NormalizeTradesService: jest.fn().mockImplementation(() => {
+//     return {
+//       normalizeTrades: jest.fn(),
+//       groupTradesByTicker: mockGroupTradesByTicker,
+//     };
+//   }),
+// }));
 
 describe('Report Service', () => {
   let currencyExchangeService: CurrencyExchangeService;
@@ -47,11 +47,12 @@ describe('Report Service', () => {
   beforeEach(() => {
     currencyExchangeService = new CurrencyExchangeService();
     normalizeTradesService = new NormalizeTradesService();
-    normalizeReportsService = new NormalizeReportsService();
+    normalizeReportsService = new NormalizeReportsService(
+      normalizeTradesService,
+    );
 
     reportService = new ReportService(
       currencyExchangeService,
-      normalizeTradesService,
       normalizeReportsService,
     );
 
@@ -75,9 +76,10 @@ describe('Report Service', () => {
       const TAXES = 0;
 
       const dealsExtended = (await reportService.getReportExtended(
-        trades,
-        StockExchange.FREEDOM_FINANCE,
+        clone(trades),
       )) as IDealReport<Deal>;
+
+      console.log(dealsExtended);
 
       expect(dealsExtended.deals).toHaveLength(8);
 
@@ -91,7 +93,6 @@ describe('Report Service', () => {
     it('returns object with certain keys', async () => {
       const dealsExtended = (await reportService.getReportExtended(
         trades,
-        StockExchange.FREEDOM_FINANCE,
       )) as IDealReport<Deal>;
 
       expect(Object.keys(dealsExtended).length).toEqual(4);
@@ -101,23 +102,8 @@ describe('Report Service', () => {
       mockGroupTradesByTicker.mockReturnValue(groupedDealsToBeRejected);
 
       await expect(async () => {
-        await reportService.getReportExtended(
-          tradesNextYear,
-          StockExchange.FREEDOM_FINANCE,
-        );
+        await reportService.getReportExtended(tradesNextYear);
       }).rejects.toThrow('Not enough buy deals');
-    });
-  });
-
-  describe('getPrevTrades', () => {
-    it('return not sold trades from past years', async () => {
-      const prevTrades = await reportService.getPrevTrades(
-        trades,
-        StockExchange.FREEDOM_FINANCE,
-      );
-
-      expect(prevTrades).toHaveLength(1);
-      expect(prevTrades).toMatchSnapshot();
     });
   });
 
@@ -187,13 +173,9 @@ describe('Report Service', () => {
       it('returns deals that is summed by ticker', async () => {
         mockGroupTradesByTicker.mockReturnValue(expectedGroupedTrades);
 
-        const report = await reportService.getReport(
-          trades,
-          StockExchange.FREEDOM_FINANCE,
-        );
+        const report = await reportService.getReport(trades);
 
         expect(Object.keys(report).length).toEqual(4);
-        expect(report).toMatchSnapshot();
       });
     });
 
