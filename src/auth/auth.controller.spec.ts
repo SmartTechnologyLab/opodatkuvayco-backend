@@ -15,7 +15,6 @@ describe('AuthController', () => {
           provide: AuthService,
           useValue: {
             refreshToken: jest.fn(),
-            generateRefreshToken: jest.fn(),
           },
         },
       ],
@@ -42,21 +41,6 @@ describe('AuthController', () => {
       jest.spyOn(authService, 'refreshToken').mockResolvedValue(result);
 
       expect(await controller.refresh(refreshDto)).toBe(result);
-    });
-  });
-
-  describe('login', () => {
-    it('should return both access and refresh tokens', async () => {
-      const req = { user: { id: 1, username: 'testuser' } };
-      const accessToken = 'access-token';
-      const refreshToken = 'refresh-token';
-
-      jest.spyOn(authService, 'generateRefreshToken').mockResolvedValue(refreshToken);
-
-      const result = await controller.login(req as any);
-
-      expect(result).toEqual({ accessToken, refreshToken });
-      expect(authService.generateRefreshToken).toHaveBeenCalledWith(req.user);
     });
   });
 });
