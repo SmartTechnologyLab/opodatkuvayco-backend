@@ -15,6 +15,7 @@ describe('AuthController', () => {
           provide: AuthService,
           useValue: {
             refreshToken: jest.fn(),
+            generateTokens: jest.fn(),
           },
         },
       ],
@@ -26,6 +27,24 @@ describe('AuthController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('login', () => {
+    it('should call authService.generateTokens with the correct user', async () => {
+      const user = { id: 1, username: 'testuser', password: 'testpassword' };
+      const req = { user };
+      await controller.login(req);
+      expect(authService.generateTokens).toHaveBeenCalledWith(user);
+    });
+
+    it('should return an object with accessToken and refreshToken', async () => {
+      const user = { id: 1, username: 'testuser', password: 'testpassword' };
+      const req = { user };
+      const tokens = { accessToken: 'access-token', refreshToken: 'refresh-token' };
+      jest.spyOn(authService, 'generateTokens').mockResolvedValue(tokens);
+
+      expect(await controller.login(req)).toBe(tokens);
+    });
   });
 
   describe('refresh', () => {

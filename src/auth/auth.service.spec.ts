@@ -37,14 +37,20 @@ describe('AuthService', () => {
       const user = { id: 1, username: 'testuser', password: 'testpassword' };
       const payload = { id: user.id };
       const newAccessToken = 'new-access-token';
+      const newRefreshToken = 'new-refresh-token';
 
       jest.spyOn(jwtService, 'verify').mockReturnValue(payload);
       jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(user as User);
-      jest.spyOn(jwtService, 'sign').mockReturnValue(newAccessToken);
+      jest.spyOn(jwtService, 'sign').mockImplementation((userData, options) => {
+        if (options && options.secret === 'refreshSecretKey') {
+          return newRefreshToken;
+        }
+        return newAccessToken;
+      });
 
       const result = await service.refreshToken(refreshToken);
 
-      expect(result).toEqual({ accessToken: newAccessToken });
+      expect(result).toEqual({ accessToken: newAccessToken, refreshToken: newRefreshToken });
       expect(jwtService.verify).toHaveBeenCalledWith(refreshToken, { secret: 'refreshSecretKey' });
       expect(userRepository.findOneBy).toHaveBeenCalledWith({ id: payload.id });
       expect(jwtService.sign).toHaveBeenCalledWith({ id: user.id, username: user.username });
@@ -68,6 +74,30 @@ describe('AuthService', () => {
       jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
 
       await expect(service.refreshToken(refreshToken)).rejects.toThrow('User not found');
+    });
+  });
+
+  describe('generateTokens', () => {
+    it('should return an object with accessToken and refreshToken', () => {
+      const user = { id: 1, username: 'testuser', password: 'testpassword' };
+      const accessToken = 'access-token';
+      const refreshToken = 'refresh-token';
+
+      jest.spyOn(jwtService, 'sign').mockImplementation((userData, options) => {
+        if (options && options.secret === 'refreshSecretKey') {
+          return refreshToken;
+        }
+        return accessToken;
+      });
+
+      const result = service.generateTokens(user as User);
+
+      expect(result).toEqual({ accessToken, refreshToken });
+      expect(jwtService.sign).toHaveBeenCalledWith({ id: user.id, username: user.username });
+      expect(jwtService.sign).toHaveBeenCalledWith(
+        { id: user.id, username: user.username },
+        { secret: 'refreshSecretKey', expiresIn: '7d' },
+      );
     });
   });
 });
