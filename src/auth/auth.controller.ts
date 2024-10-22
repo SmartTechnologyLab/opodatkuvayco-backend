@@ -5,6 +5,8 @@ import { LocalGuard } from './guards/local.guards';
 import { Request } from 'express';
 import { JwtGuard } from './guards/jwt.quards';
 import { ApiTags } from '@nestjs/swagger';
+import { RefreshDto } from './dto/refresh.dto';
+import { RefreshGuard } from './guards/refresh.guard';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -13,8 +15,10 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalGuard)
-  login(@Req() req: Request) {
-    return req.user;
+  async login(@Req() req: Request) {
+    const accessToken = req.user;
+    const refreshToken = await this.authService.generateRefreshToken(req.user);
+    return { accessToken, refreshToken };
   }
 
   @Get('status')
@@ -28,5 +32,11 @@ export class AuthController {
   @Post('create')
   createUser(@Body() createDto: AuthLoginDto) {
     return this.authService.createUser(createDto);
+  }
+
+  @Post('refresh')
+  @UseGuards(RefreshGuard)
+  refresh(@Body() refreshDto: RefreshDto) {
+    return this.authService.refreshToken(refreshDto.refreshToken);
   }
 }
