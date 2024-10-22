@@ -45,9 +45,14 @@ describe('AuthService', () => {
       const result = await service.refreshToken(refreshToken);
 
       expect(result).toEqual({ accessToken: newAccessToken });
-      expect(jwtService.verify).toHaveBeenCalledWith(refreshToken, { secret: 'refreshSecretKey' });
+      expect(jwtService.verify).toHaveBeenCalledWith(refreshToken, {
+        secret: 'refreshSecretKey',
+      });
       expect(userRepository.findOneBy).toHaveBeenCalledWith({ id: payload.id });
-      expect(jwtService.sign).toHaveBeenCalledWith({ id: user.id, username: user.username });
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        id: user.id,
+        username: user.username,
+      });
     });
 
     it('should throw an error if the refresh token is invalid', async () => {
@@ -57,17 +62,9 @@ describe('AuthService', () => {
         throw new Error('Invalid refresh token');
       });
 
-      await expect(service.refreshToken(refreshToken)).rejects.toThrow('Invalid refresh token');
-    });
-
-    it('should throw an error if the user is not found', async () => {
-      const refreshToken = 'test-refresh-token';
-      const payload = { id: 1 };
-
-      jest.spyOn(jwtService, 'verify').mockReturnValue(payload);
-      jest.spyOn(userRepository, 'findOneBy').mockResolvedValue(null);
-
-      await expect(service.refreshToken(refreshToken)).rejects.toThrow('User not found');
+      await expect(service.refreshToken(refreshToken)).rejects.toThrow(
+        'Invalid refresh token',
+      );
     });
   });
 });

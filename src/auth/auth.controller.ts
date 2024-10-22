@@ -15,8 +15,10 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(LocalGuard)
-  login(@Req() req: Request) {
-    return req.user;
+  async login(@Req() req: Request) {
+    const accessToken = req.user;
+    const refreshToken = await this.authService.generateRefreshToken(req.user);
+    return { accessToken, refreshToken };
   }
 
   @Get('status')

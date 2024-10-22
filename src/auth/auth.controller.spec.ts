@@ -15,6 +15,7 @@ describe('AuthController', () => {
           provide: AuthService,
           useValue: {
             refreshToken: jest.fn(),
+            generateRefreshToken: jest.fn(),
           },
         },
       ],
@@ -32,7 +33,9 @@ describe('AuthController', () => {
     it('should call authService.refreshToken with the correct refresh token', async () => {
       const refreshDto: RefreshDto = { refreshToken: 'test-refresh-token' };
       await controller.refresh(refreshDto);
-      expect(authService.refreshToken).toHaveBeenCalledWith('test-refresh-token');
+      expect(authService.refreshToken).toHaveBeenCalledWith(
+        'test-refresh-token',
+      );
     });
 
     it('should return a new access token', async () => {
