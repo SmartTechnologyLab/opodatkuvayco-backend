@@ -15,7 +15,11 @@ import { RefreshGuard } from './guards/refresh.guard';
     PassportModule,
     JwtModule.register({
       secret: 'qwerty123',
-      signOptions: { expiresIn: '1h' },
+      signOptions: { expiresIn: '1m' },
+    }),
+    JwtModule.register({
+      secret: 'refreshSecretKey',
+      signOptions: { expiresIn: '2m' },
     }),
   ],
   providers: [AuthService, LocalStrategy, JwtStrategy, RefreshTokenStrategy, RefreshGuard],
