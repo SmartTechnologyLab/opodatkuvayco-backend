@@ -17,13 +17,11 @@ export class AuthService {
     if (!findUser) return null;
 
     if (password === findUser.password) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...user } = findUser;
-      const accessToken = this.jwtService.sign(user);
-      const refreshToken = await this.generateRefreshToken(user);
-      return { accessToken, refreshToken };
+      return this.jwtService.sign(user);
     }
   }
-
   createUser(createDto: AuthLoginDto) {
     const newUser = this.userRepository.create(createDto);
     return this.userRepository.save(newUser);
@@ -38,14 +36,10 @@ export class AuthService {
       }
       const { password, ...userData } = user;
       const newAccessToken = this.jwtService.sign(userData);
-      return { accessToken: newAccessToken };
+      const newRefreshToken = this.jwtService.sign(userData, { secret: 'refreshSecretKey', expiresIn: '7d' });
+      return { accessToken: newAccessToken, refreshToken: newRefreshToken };
     } catch (error) {
       throw new Error('Invalid refresh token');
     }
-  }
-
-  async generateRefreshToken(user: any) {
-    const payload = { id: user.id, username: user.username };
-    return this.jwtService.sign(payload, { secret: 'refreshSecretKey', expiresIn: '7d' });
   }
 }
