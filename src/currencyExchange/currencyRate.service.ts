@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CurrencyExchangeResponse } from './types/interfaces/currency-exchange-response.interface';
 import { NBUCurrencyExchange } from './types/interfaces/nbu-currency-exchange.interface';
 import { DateTimeFormatService } from 'src/dateTimeFormat/dateFormat.service';
@@ -31,7 +31,9 @@ export class CurrencyRateService {
       const [data]: NBUCurrencyExchange[] = await response.json();
 
       if (!response.ok) {
-        throw new Error();
+        throw new Error(
+          `Failed to fetch currency exchange rate: ${response.statusText}`,
+        );
       }
 
       return {
@@ -40,7 +42,7 @@ export class CurrencyRateService {
         exchangedate: data.exchangedate,
       };
     } catch (error) {
-      throw new Error();
+      throw new BadRequestException('Error while getting currency rate');
     }
   }
 }

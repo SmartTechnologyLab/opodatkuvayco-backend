@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  Injectable,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Injectable, Query } from '@nestjs/common';
 import { CurrencyRateService } from './currencyRate.service';
 
 @Injectable()
@@ -17,15 +11,11 @@ export class CurrencyRateController {
     @Query('currency') currency: string,
     @Query('date') date: string,
   ) {
-    try {
-      const rate = await this.currencyExchangeService.getCurrencyExchange(
-        currency,
-        date,
-      );
-      console.log(rate);
-      return rate;
-    } catch (error) {
-      throw new BadRequestException('Error while getting currency rate');
-    }
+    const rate = await this.currencyExchangeService.getCurrencyExchange(
+      currency,
+      date,
+    );
+
+    return rate;
   }
 }
