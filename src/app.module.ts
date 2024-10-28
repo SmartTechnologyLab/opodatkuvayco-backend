@@ -8,7 +8,10 @@ import { HealthController } from './health/health.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
-import { User } from './auth/entities/User';
+import { User } from './user/entities/user.entity';
+import { UserModule } from './user/user.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AuthInterceptor } from './interceptor/auth.interceptor';
 import { CurrencyRateModule } from './currencyExchange/currencyRate.module';
 import { DateFormatModule } from './dateTimeFormat/dateFormat.module';
 
@@ -37,9 +40,16 @@ import { DateFormatModule } from './dateTimeFormat/dateFormat.module';
     NormalizeTradesModule,
     NormalizeReportsModule,
     AuthModule,
+    UserModule,
     DateFormatModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuthInterceptor,
+    },
+  ],
 })
 export class AppModule {}

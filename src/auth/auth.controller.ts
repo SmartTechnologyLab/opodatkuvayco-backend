@@ -1,43 +1,63 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
-import { AuthLoginDto } from './dto/auth.dto';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LocalGuard } from './guards/local.guards';
-import { Request } from 'express';
-import { JwtGuard } from './guards/jwt.quards';
+import { LocalGuard } from './guards/local.guard';
 import { ApiTags } from '@nestjs/swagger';
-import { RefreshDto } from './dto/refresh.dto';
-import { RefreshGuard } from './guards/refresh.guard';
+// import { UserService } from '../user/user.service';
+import { JwtGuard } from './guards/jwt.quard';
+import { LoginDto, RegisterDto } from './dto/auth.dto';
+import { User } from '../user/entities/user.entity';
 
 @Controller('auth')
 @ApiTags('Auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    // private userService: UserService,
+  ) {}
 
   @Post('login')
   @UseGuards(LocalGuard)
-  async login(@Req() req: Request) {
-    const user = await this.authService.validateUser(req.body);
-    const tokens = await this.authService.generateTokens(user);
-    return tokens;
+  async login(@Body() loginDto: LoginDto) {
+    return await this.authService.login(loginDto);
   }
 
-  @Get('status')
+  @Post('register')
+  register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
+  }
+
+  @Get('profile')
   @UseGuards(JwtGuard)
-  status(@Req() req: Request) {
-    console.log('Inside AuthController status method');
-    console.log(req.user);
+  getProfile(@Request() req: any): User {
     return req.user;
   }
 
-  @Post('create')
-  createUser(@Body() createDto: AuthLoginDto) {
-    return this.authService.createUser(createDto);
+  @Post('logout')
+  logout() {
+    // Respond with instructions for the client to delete the JWT
+    return { message: 'Please delete your JWT' };
   }
 
-  @Post('refresh')
-  @UseGuards(RefreshGuard)
-  async refresh(@Body() refreshDto: RefreshDto) {
-    const tokens = await this.authService.refreshToken(refreshDto.refreshToken);
-    return tokens;
-  }
+  // @Get('status')
+  // @UseGuards(JwtGuard)
+  // status(@Req() req: Request) {
+  //   console.log('Inside AuthController status method');
+  //   console.log(req.user);
+  //   return req.user;
+  // }
+  //
+  //
+  // @Post('refresh')
+  // @UseGuards(RefreshGuard)
+  // async refresh(@Body() refreshDto: RefreshDto) {
+  //   const tokens = await this.authService.refreshToken(refreshDto.refreshToken);
+  //   return tokens;
+  // }
 }

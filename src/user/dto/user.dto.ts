@@ -1,6 +1,6 @@
 import { IsNotEmpty } from 'class-validator';
 
-export class LoginDto {
+export class UserDto {
   @IsNotEmpty({ message: 'Name field cannot be empty' })
   username: string;
 
@@ -8,7 +8,7 @@ export class LoginDto {
   password: string;
 }
 
-export class RegisterDto {
+export class CreateUserDto {
   @IsNotEmpty({ message: 'Name field cannot be empty' })
   username: string;
 
