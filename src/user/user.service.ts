@@ -12,13 +12,18 @@ export class UserService {
     private usersRepository: Repository<User>,
   ) {}
 
-  register({ username, password }: CreateUserDto): Promise<User> {
+  async register({
+    username,
+    password,
+  }: CreateUserDto): Promise<{ username: string; id: string }> {
     const user = new User();
     user.id = uuidv4();
     user.username = username;
     user.password = password;
 
-    return this.usersRepository.save(user);
+    const savedUser = await this.usersRepository.save(user);
+
+    return this.toUserDto(savedUser);
   }
 
   findOne(data: number | any): Promise<User | undefined> {
@@ -33,5 +38,11 @@ export class UserService {
     }
 
     return user;
+  }
+
+  toUserDto(user: Omit<User, 'password'>) {
+    const { id, username } = user;
+
+    return { id, username };
   }
 }

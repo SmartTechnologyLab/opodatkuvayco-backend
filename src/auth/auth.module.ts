@@ -4,11 +4,12 @@ import { AuthController } from './auth.controller';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { LocalStrategy } from './strategies/local.strategy';
-import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtStrategy, RefreshTokenStrategy } from './strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
 import { jwtConstants } from './constants';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
+import { RefreshGuard } from './guards/refresh.guard';
 
 @Module({
   imports: [
@@ -17,15 +18,15 @@ import { User } from '../user/entities/user.entity';
     UserModule,
     JwtModule.register({
       secret: jwtConstants.secret,
-      signOptions: { expiresIn: '1m' },
+      signOptions: { expiresIn: '60s' },
     }),
   ],
   providers: [
     AuthService,
     LocalStrategy,
     JwtStrategy,
-    // RefreshTokenStrategy,
-    // RefreshGuard,
+    RefreshTokenStrategy,
+    RefreshGuard,
   ],
   controllers: [AuthController],
   exports: [AuthService],

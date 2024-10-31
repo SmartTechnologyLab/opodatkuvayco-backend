@@ -9,18 +9,16 @@ import {
 import { AuthService } from './auth.service';
 import { LocalGuard } from './guards/local.guard';
 import { ApiTags } from '@nestjs/swagger';
-// import { UserService } from '../user/user.service';
 import { JwtGuard } from './guards/jwt.quard';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { User } from '../user/entities/user.entity';
+import { RefreshGuard } from './guards/refresh.guard';
+import { RefreshDto } from './dto/refresh.dto';
 
 @Controller('auth')
 @ApiTags('Auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    // private userService: UserService,
-  ) {}
+  constructor(private authService: AuthService) {}
 
   @Post('login')
   @UseGuards(LocalGuard)
@@ -36,7 +34,10 @@ export class AuthController {
   @Get('profile')
   @UseGuards(JwtGuard)
   getProfile(@Request() req: any): User {
-    return req.user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...restCreds } = req.user;
+
+    return restCreds;
   }
 
   @Post('logout')
@@ -45,19 +46,10 @@ export class AuthController {
     return { message: 'Please delete your JWT' };
   }
 
-  // @Get('status')
-  // @UseGuards(JwtGuard)
-  // status(@Req() req: Request) {
-  //   console.log('Inside AuthController status method');
-  //   console.log(req.user);
-  //   return req.user;
-  // }
-  //
-  //
-  // @Post('refresh')
-  // @UseGuards(RefreshGuard)
-  // async refresh(@Body() refreshDto: RefreshDto) {
-  //   const tokens = await this.authService.refreshToken(refreshDto.refreshToken);
-  //   return tokens;
-  // }
+  @Post('refresh')
+  @UseGuards(RefreshGuard)
+  async refresh(@Body() refreshDto: RefreshDto) {
+    const tokens = await this.authService.refreshToken(refreshDto.refreshToken);
+    return tokens;
+  }
 }
