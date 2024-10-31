@@ -8,7 +8,7 @@ export interface Deal {
   total: number;
 }
 
-interface TransactionDetails {
+export interface TransactionDetails {
   date: Date;
   price: number;
   sum: number;
