@@ -4,6 +4,7 @@ import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/user/entities/user.entity';
+import { jwtConstants } from './constants';
 
 @Injectable()
 export class AuthService {
@@ -59,7 +60,7 @@ export class AuthService {
     const refreshToken = this.jwtService.sign(
       { id: user.id, username: user.username },
       {
-        secret: 'refreshSecretKey',
+        secret: jwtConstants.refreshSecret,
         expiresIn: '7d',
       },
     );
@@ -70,7 +71,7 @@ export class AuthService {
   async refreshToken(refreshToken: string) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
-        secret: 'refreshSecretKey',
+        secret: jwtConstants.refreshSecret,
       });
 
       const user = await this.userService.findOne({ id: payload.id });

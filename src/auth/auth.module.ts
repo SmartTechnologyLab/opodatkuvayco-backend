@@ -17,8 +17,8 @@ import { RefreshGuard } from './guards/refresh.guard';
     PassportModule,
     UserModule,
     JwtModule.register({
-      secret: jwtConstants.secret,
-      signOptions: { expiresIn: '60s' },
+      secret: jwtConstants.accessSecret,
+      signOptions: { expiresIn: '15m' },
     }),
   ],
   providers: [
