@@ -1,5 +1,5 @@
 export interface Deal {
-  id: symbol;
+  id: string;
   percent: number;
   purchase: TransactionDetails;
   quantity: number;

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { clone, reverse, groupBy } from 'ramda';
+import { reverse } from 'ramda';
 import { sortByDate } from './helpers';
 import { NormalizeReportsService } from '../normalizeReports/normalizeReports.service';
 import { ReportReaderService } from 'src/reportReader/reportReader.service';
@@ -8,39 +8,23 @@ import { Trade } from './types/interfaces/trade.interface';
 import { DealReport } from './types/interfaces/deal-report.interface';
 import { Deal } from './types/interfaces/deal.interface';
 import { Report } from './types/interfaces/report.interface';
-import { DealOptions } from './types/interfaces/deal-options.interface';
-import { FreedomFinanceCorporateAction } from 'src/normalizeReports/types/interfaces/freedomFinance.interface';
 import { StockExchangeType } from 'src/normalizeReports/types/types/stock-exchange.type';
-import { CurrencyRateService } from 'src/currencyExchange/currencyRate.service';
-import { DateTimeFormatService } from 'src/dateTimeFormat/dateFormat.service';
 import { MILITARY_FEE, TAX_FEE } from './consts/tax-fee-percentages';
+import { DealsService } from '../deals/deals.service';
 
 @Injectable()
 export class ReportService {
   constructor(
-    private currencyRateService: CurrencyRateService,
     private normalizeReportsService: NormalizeReportsService,
     private reportReaderService: ReportReaderService,
-    private dateTimeFormatService: DateTimeFormatService,
+    private dealsService: DealsService,
   ) {}
-
-  private groupTradesByTicker(
-    trades: Trade[],
-  ): Record<Trade['ticker'], Trade[]> {
-    const tradesCopy = clone(trades);
-
-    return groupBy((deal: Trade) => {
-      const ticker = deal.ticker.split('.').at(0);
-
-      return ticker;
-    }, tradesCopy);
-  }
 
   // TODO: Refactor algorithm
   private async getReportExtended(trades: Trade[]): Promise<DealReport<Deal>> {
     const deals: Deal[] = [];
 
-    const groupedTrades = this.groupTradesByTicker(trades);
+    const groupedTrades = this.dealsService.groupTradesByTicker(trades);
 
     for (const ticker in groupedTrades) {
       let buyQueue: Trade[] = [];
@@ -48,7 +32,10 @@ export class ReportService {
 
       for (const trade of groupedTrades[ticker]) {
         if (trade.operation === 'buy' && trade.quantity > 0) {
-          const existingTrade = this.findDealByDateAndPrice(buyQueue, trade);
+          const existingTrade = this.dealsService.findDealByDateAndPrice(
+            buyQueue,
+            trade,
+          );
           if (existingTrade) {
             existingTrade.quantity += trade.quantity;
             existingTrade.commission += trade.commission;
@@ -138,18 +125,19 @@ export class ReportService {
     };
   }
 
-  private addToByQueue() {}
-
   private async getPrevTrades(trades: Trade[]): Promise<Trade[]> {
     const remainedPurchaseDeals: Trade[] = [];
 
-    const groupedTrades = this.groupTradesByTicker(clone(trades));
+    const groupedTrades = this.dealsService.groupTradesByTicker(trades);
 
     for (const ticker in groupedTrades) {
       let buyQueue: Trade[] = [];
       for (const deal of groupedTrades[ticker]) {
         if (deal.operation === 'buy' && deal.quantity > 0) {
-          const existingDeal = this.findDealByDateAndPrice(buyQueue, deal);
+          const existingDeal = this.dealsService.findDealByDateAndPrice(
+            buyQueue,
+            deal,
+          );
           if (existingDeal) {
             existingDeal.quantity += deal.quantity;
             existingDeal.commission += deal.commission;
@@ -215,7 +203,7 @@ export class ReportService {
     return remainedPurchaseDeals;
   }
 
-  private async getReport(report: Trade[]): Promise<DealReport<Deal>> {
+  private async getNormalReport(report: Trade[]): Promise<DealReport<Deal>> {
     const {
       deals: extendedDeals,
       total,
@@ -261,17 +249,15 @@ export class ReportService {
     sellDeal: Trade,
     sellComission?: number,
   ): Promise<Deal> {
-    const [purchaseRate, saleRate] = await this.fetchPurchaseAndSellRate(
-      purchaseDeal,
-      sellDeal,
-    );
+    const [purchaseRate, saleRate] =
+      await this.dealsService.fetchPurchaseAndSellRate(purchaseDeal, sellDeal);
 
     const quantityToProcess = Math.min(
       purchaseDeal.quantity,
       sellDeal.quantity,
     );
 
-    const deal = this.getDeal({
+    const deal = this.dealsService.generateDeal({
       ticker: purchaseDeal.ticker,
       purchaseCommission: purchaseDeal.commission,
       purchaseDate: new Date(purchaseDeal.date),
@@ -298,32 +284,44 @@ export class ReportService {
   ) => Promise<DealReport<Deal>> {
     return reportType === 'extended'
       ? this.getReportExtended.bind(this)
-      : this.getReport.bind(this);
+      : this.getNormalReport.bind(this);
   }
 
-  async handleReports({
+  private async handleSingleReport({
     files,
-    reportType,
-    stockExchange,
     fileType,
+    stockExchange,
+    reportType,
   }: {
     files: Express.Multer.File[];
     reportType: string;
     stockExchange: StockExchangeType;
     fileType: FileType;
-  }): Promise<DealReport<Deal>> {
+  }) {
     const getReportFunction = this.getReportFunction(reportType);
 
-    if (files.length === 1) {
-      const report = this.reportReaderService.readReport(files.at(0), fileType);
+    const report = this.reportReaderService.readReport(files.at(0), fileType);
 
-      const { trades } = this.normalizeReportsService.getReportByStockExchange(
-        report,
-        stockExchange,
-      );
+    const { trades } = this.normalizeReportsService.getReportByStockExchange(
+      report,
+      stockExchange,
+    );
 
-      return getReportFunction(trades, stockExchange);
-    }
+    return getReportFunction(trades, stockExchange);
+  }
+
+  private async handleMultipleReports({
+    files,
+    fileType,
+    stockExchange,
+    reportType,
+  }: {
+    files: Express.Multer.File[];
+    reportType: string;
+    stockExchange: StockExchangeType;
+    fileType: FileType;
+  }) {
+    const getReportFunction = this.getReportFunction(reportType);
 
     const reports: Report<Trade>[] = [];
     const dealsToCalculate: Trade[] = [];
@@ -377,39 +375,32 @@ export class ReportService {
     );
   }
 
-  private async fetchPurchaseAndSellRate(
-    purchaseDeal: Trade,
-    sellDeal: Trade,
-  ): Promise<[number, number]> {
-    try {
-      const [{ rate: purchaseRate }, { rate: sellRate }] = await Promise.all([
-        this.currencyRateService.getCurrencyExchange(
-          purchaseDeal.currency,
-          purchaseDeal.date,
-        ),
-
-        this.currencyRateService.getCurrencyExchange(
-          sellDeal.currency,
-          sellDeal.date,
-        ),
-      ]);
-
-      return [purchaseRate, sellRate];
-    } catch (error) {
-      throw new BadRequestException({
-        statusCode: 400,
-        message: 'Error while fetching currency exchange',
+  async handleReports({
+    files,
+    reportType,
+    stockExchange,
+    fileType,
+  }: {
+    files: Express.Multer.File[];
+    reportType: string;
+    stockExchange: StockExchangeType;
+    fileType: FileType;
+  }): Promise<DealReport<Deal>> {
+    if (files.length === 1) {
+      return this.handleSingleReport({
+        files,
+        fileType,
+        stockExchange,
+        reportType,
+      });
+    } else {
+      return this.handleMultipleReports({
+        files,
+        fileType,
+        stockExchange,
+        reportType,
       });
     }
-  }
-
-  private findDealByDateAndPrice(deals: Trade[], currentDeal: Trade) {
-    return deals.find(
-      (deal) =>
-        this.dateTimeFormatService.format(deal.date, 'yyyy-MM-dd') ===
-          this.dateTimeFormatService.format(currentDeal.date, 'yyyy-MM-dd') &&
-        deal.price === currentDeal.price,
-    );
   }
 
   private getTotalTaxFee(total: number) {
@@ -426,93 +417,5 @@ export class ReportService {
     }
 
     return total * MILITARY_FEE;
-  }
-
-  private getDeal({
-    ticker,
-    quantity,
-    purchaseCommission,
-    purchaseDate,
-    purchasePrice,
-    purchaseRate,
-    saleCommission,
-    saleDate,
-    salePrice,
-    saleRate,
-  }: DealOptions = {}) {
-    const purchaseSum = purchasePrice * quantity;
-    const _purchaseCommission = purchaseCommission || purchaseSum;
-    const saleSum = salePrice * quantity;
-    const _saleCommission = saleCommission || saleSum;
-    const purchaseUah =
-      (purchaseSum + _purchaseCommission) * purchaseRate +
-      _saleCommission * saleRate;
-    const saleUah = saleSum * saleRate;
-
-    return {
-      id: Symbol(),
-      purchase: {
-        commission: _purchaseCommission,
-        date: purchaseDate,
-        price: purchasePrice,
-        rate: purchaseRate,
-        sum: purchaseSum,
-        uah: purchaseUah,
-      },
-      quantity: quantity,
-      sale: {
-        commission: _saleCommission,
-        date: saleDate,
-        price: salePrice,
-        rate: saleRate,
-        sum: saleSum,
-        uah: saleUah,
-      },
-      ticker: ticker,
-      total: saleUah - purchaseUah,
-      percent: saleUah / purchaseUah - 1,
-    };
-  }
-
-  private async calculateDividends(
-    file: Express.Multer.File,
-    fileType: FileType,
-  ) {
-    const corporateActions = this.reportReaderService.readReport(file, fileType)
-      .corporate_actions.detailed as FreedomFinanceCorporateAction[];
-
-    const filteredActionsByDividend = corporateActions.filter(
-      (action) => action.type_id === 'dividend',
-    );
-
-    const dividends = await Promise.all(
-      filteredActionsByDividend.map(async (dividend) => {
-        const { rate } = await this.currencyRateService.getCurrencyExchange(
-          dividend.currency,
-          dividend.date,
-        );
-
-        return {
-          ticker: dividend.ticker,
-          rate,
-          price: dividend.amount,
-          uah: dividend.amount * rate,
-        };
-      }),
-    );
-
-    const totalDividends = dividends.reduce(
-      (acc, dividend) => acc + dividend.uah,
-      0,
-    );
-
-    return {
-      total: {
-        sumUAH: totalDividends,
-        taxFee: totalDividends * TAX_FEE,
-        militaryFee: totalDividends * MILITARY_FEE,
-      },
-      dividendsResult: dividends,
-    };
   }
 }

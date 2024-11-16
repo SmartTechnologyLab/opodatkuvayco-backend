@@ -11,6 +11,7 @@ import { CurrencyRateService } from 'src/currencyExchange/currencyRate.service';
 import { CurrencyRateModule } from 'src/currencyExchange/currencyRate.module';
 import { DateFormatModule } from 'src/dateTimeFormat/dateFormat.module';
 import { DateTimeFormatService } from 'src/dateTimeFormat/dateFormat.service';
+import { DealsModule } from 'src/deals/deals.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { DateTimeFormatService } from 'src/dateTimeFormat/dateFormat.service';
     NormalizeReportsModule,
     ReportReaderModule,
     DateFormatModule,
+    DealsModule,
   ],
   controllers: [ReportController],
   providers: [
