@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ReportModule } from './report/report.module';
 import { NormalizeTradesModule } from './normalizeTrades/normalizeTrades.module';
@@ -14,6 +13,8 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthInterceptor } from './interceptor/auth.interceptor';
 import { CurrencyRateModule } from './currencyExchange/currencyRate.module';
 import { DateFormatModule } from './dateTimeFormat/dateFormat.module';
+import { Deal, Trade } from './deals/entities/deals.entity';
+import { Report } from './report/entities/report.entity';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { DateFormatModule } from './dateTimeFormat/dateFormat.module';
         username: configService.get('DB_USER'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
-        entities: [User],
+        entities: [User, Deal, Trade, Report],
         // TODO: not for production
         synchronize: true,
       }),
@@ -43,7 +44,7 @@ import { DateFormatModule } from './dateTimeFormat/dateFormat.module';
     UserModule,
     DateFormatModule,
   ],
-  controllers: [AppController, HealthController],
+  controllers: [HealthController],
   providers: [
     AppService,
     {

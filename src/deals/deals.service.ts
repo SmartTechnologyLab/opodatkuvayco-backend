@@ -6,10 +6,19 @@ import { Deal } from 'src/report/types/interfaces/deal.interface';
 import { Trade } from 'src/report/types/interfaces/trade.interface';
 import { v4 as uuid } from 'uuid';
 import { clone, groupBy } from 'ramda';
+import { InjectRepository } from '@nestjs/typeorm';
+import {
+  Deal as DealEntity,
+  Trade as TradeEntity,
+} from './entities/deals.entity';
+import { Repository } from 'typeorm';
+import { User } from 'src/user/entities/user.entity';
 
 @Injectable()
 export class DealsService {
   constructor(
+    @InjectRepository(DealEntity)
+    private dealRepository: Repository<DealEntity>,
     private currencyRateService: CurrencyRateService,
     private dateTimeFormatService: DateTimeFormatService,
   ) {}
@@ -64,23 +73,53 @@ export class DealsService {
     purchaseDeal: Trade,
     sellDeal: Trade,
   ): Promise<[number, number]> {
-    try {
-      const [{ rate: purchaseRate }, { rate: sellRate }] = await Promise.all([
-        this.currencyRateService.getCurrencyExchange(
-          purchaseDeal.currency,
-          purchaseDeal.date,
-        ),
+    const [{ rate: purchaseRate }, { rate: sellRate }] = await Promise.all([
+      this.currencyRateService.getCurrencyExchange(
+        purchaseDeal.currency,
+        purchaseDeal.date,
+      ),
 
-        this.currencyRateService.getCurrencyExchange(
-          sellDeal.currency,
-          sellDeal.date,
-        ),
-      ]);
+      this.currencyRateService.getCurrencyExchange(
+        sellDeal.currency,
+        sellDeal.date,
+      ),
+    ]);
 
-      return [purchaseRate, sellRate];
-    } catch (error) {
-      throw new BadRequestException('Error while fetching currency exchange');
-    }
+    return [purchaseRate, sellRate];
+  }
+
+  async setDeal(
+    purchaseTrade: Trade,
+    sellTrade: Trade,
+    commission: number,
+  ): Promise<Deal> {
+    const [purchaseRate, saleRate] = await this.fetchPurchaseAndSellRate(
+      purchaseTrade,
+      sellTrade,
+    );
+
+    const quantityToProcess = Math.min(
+      purchaseTrade.quantity,
+      sellTrade.quantity,
+    );
+
+    const deal = this.generateDeal({
+      ticker: purchaseTrade.ticker,
+      purchaseCommission: purchaseTrade.commission,
+      purchaseDate: new Date(purchaseTrade.date),
+      purchasePrice: purchaseTrade.price,
+      purchaseRate,
+      quantity: quantityToProcess,
+      saleCommission: commission * purchaseTrade.quantity,
+      saleDate: new Date(sellTrade.date),
+      salePrice: sellTrade.price,
+      saleRate,
+    });
+
+    sellTrade.quantity -= quantityToProcess;
+    purchaseTrade.quantity -= quantityToProcess;
+
+    return deal;
   }
 
   findDealByDateAndPrice(deals: Trade[], currentDeal: Trade) {
@@ -100,5 +139,56 @@ export class DealsService {
 
       return ticker;
     }, tradesCopy);
+  }
+
+  async saveDeals(deals: Deal[], user: User): Promise<DealEntity[]> {
+    try {
+      const dealEntities = deals.map((deal) => {
+        const purchase = new TradeEntity();
+        purchase.date = deal.purchase.date;
+        purchase.price = deal.purchase.price;
+        purchase.sum = deal.purchase.sum;
+        purchase.commission = deal.purchase.commission;
+        purchase.rate = deal.purchase.rate;
+        purchase.uah = deal.purchase.uah;
+
+        const sale = new TradeEntity();
+        sale.date = deal.sale.date;
+        sale.price = deal.sale.price;
+        sale.sum = deal.sale.sum;
+        sale.commission = deal.sale.commission;
+        sale.rate = deal.sale.rate;
+        sale.uah = deal.sale.uah;
+
+        const dealEntity = new DealEntity();
+        dealEntity.id = deal.id;
+        dealEntity.percent = deal.percent;
+        dealEntity.quantity = deal.quantity;
+        dealEntity.ticker = deal.ticker;
+        dealEntity.total = deal.total;
+        dealEntity.purchase = purchase;
+        dealEntity.sale = sale;
+        dealEntity.user = user;
+
+        return dealEntity;
+      });
+
+      return this.dealRepository.save(dealEntities);
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
+  }
+
+  async getDeals(userId: string): Promise<DealEntity[]> {
+    const deals = await this.dealRepository.find({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: ['purchase', 'sale'],
+    });
+
+    return deals;
   }
 }

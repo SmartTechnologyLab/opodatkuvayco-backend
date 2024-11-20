@@ -11,14 +11,41 @@ import { Report } from './types/interfaces/report.interface';
 import { StockExchangeType } from 'src/normalizeReports/types/types/stock-exchange.type';
 import { MILITARY_FEE, TAX_FEE } from './consts/tax-fee-percentages';
 import { DealsService } from '../deals/deals.service';
+import { Report as ReportEntity } from 'src/report/entities/report.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from 'src/user/entities/user.entity';
 
 @Injectable()
 export class ReportService {
   constructor(
+    @InjectRepository(ReportEntity)
+    private reportRepository: Repository<ReportEntity>,
     private normalizeReportsService: NormalizeReportsService,
     private reportReaderService: ReportReaderService,
     private dealsService: DealsService,
   ) {}
+
+  async saveReport(
+    report: DealReport<Deal>,
+    user: User,
+  ): Promise<ReportEntity> {
+    try {
+      const deals = await this.dealsService.saveDeals(report.deals, user);
+
+      const newReport = new ReportEntity();
+
+      newReport.total = report.total;
+      newReport.totalMilitaryFee = report.totalMilitaryFee;
+      newReport.totalTaxFee = report.totalTaxFee;
+      newReport.deals = deals;
+      newReport.user = user;
+
+      return this.reportRepository.save(newReport);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 
   // TODO: Refactor algorithm
   private async getReportExtended(trades: Trade[]): Promise<DealReport<Deal>> {
@@ -47,7 +74,7 @@ export class ReportService {
 
           for (const purchaseDeal of buyQueue) {
             if (trade.quantity > 0 && purchaseDeal.quantity > 0) {
-              const newDeal = await this.setDeal(
+              const newDeal = await this.dealsService.setDeal(
                 purchaseDeal,
                 trade,
                 sellComission,
@@ -71,7 +98,7 @@ export class ReportService {
               : this.getShortBuy(groupedTrades[ticker], trade);
 
             if (foundShortBuy && Boolean(foundShortBuy.quantity)) {
-              const newDeal = await this.setDeal(
+              const newDeal = await this.dealsService.setDeal(
                 foundShortBuy,
                 trade,
                 sellComission,
@@ -90,7 +117,7 @@ export class ReportService {
           const foundShortBuy = this.getShortBuy(groupedTrades[ticker], trade);
 
           if (foundShortBuy) {
-            const newDeal = await this.setDeal(
+            const newDeal = await this.dealsService.setDeal(
               foundShortBuy,
               trade,
               sellComission,
@@ -244,38 +271,6 @@ export class ReportService {
     );
   }
 
-  private async setDeal(
-    purchaseDeal: Trade,
-    sellDeal: Trade,
-    sellComission?: number,
-  ): Promise<Deal> {
-    const [purchaseRate, saleRate] =
-      await this.dealsService.fetchPurchaseAndSellRate(purchaseDeal, sellDeal);
-
-    const quantityToProcess = Math.min(
-      purchaseDeal.quantity,
-      sellDeal.quantity,
-    );
-
-    const deal = this.dealsService.generateDeal({
-      ticker: purchaseDeal.ticker,
-      purchaseCommission: purchaseDeal.commission,
-      purchaseDate: new Date(purchaseDeal.date),
-      purchasePrice: purchaseDeal.price,
-      purchaseRate,
-      quantity: quantityToProcess,
-      saleCommission: sellComission * purchaseDeal.quantity,
-      saleDate: new Date(sellDeal.date),
-      salePrice: sellDeal.price,
-      saleRate,
-    });
-
-    sellDeal.quantity -= quantityToProcess;
-    purchaseDeal.quantity -= quantityToProcess;
-
-    return deal;
-  }
-
   private getReportFunction(
     reportType: string,
   ): (
@@ -292,11 +287,13 @@ export class ReportService {
     fileType,
     stockExchange,
     reportType,
+    user,
   }: {
     files: Express.Multer.File[];
     reportType: string;
     stockExchange: StockExchangeType;
     fileType: FileType;
+    user: User;
   }) {
     const getReportFunction = this.getReportFunction(reportType);
 
@@ -307,7 +304,11 @@ export class ReportService {
       stockExchange,
     );
 
-    return getReportFunction(trades, stockExchange);
+    const result = await getReportFunction(trades, stockExchange);
+
+    await this.saveReport(result, user);
+
+    return result;
   }
 
   private async handleMultipleReports({
@@ -315,11 +316,13 @@ export class ReportService {
     fileType,
     stockExchange,
     reportType,
+    user,
   }: {
     files: Express.Multer.File[];
     reportType: string;
     stockExchange: StockExchangeType;
     fileType: FileType;
+    user: User;
   }) {
     const getReportFunction = this.getReportFunction(reportType);
 
@@ -369,38 +372,41 @@ export class ReportService {
       }
     }
 
-    return getReportFunction(
+    const result = await getReportFunction(
       [...dealsToCalculate, ...sortedReportsByDate.at(0).trades],
       stockExchange,
     );
+
+    await this.saveReport(result, user);
+
+    return result;
   }
 
-  async handleReports({
-    files,
-    reportType,
-    stockExchange,
-    fileType,
-  }: {
+  async handleReports(args: {
     files: Express.Multer.File[];
     reportType: string;
     stockExchange: StockExchangeType;
     fileType: FileType;
+    user: User;
   }): Promise<DealReport<Deal>> {
-    if (files.length === 1) {
-      return this.handleSingleReport({
-        files,
-        fileType,
-        stockExchange,
-        reportType,
-      });
+    if (args.files.length === 1) {
+      return this.handleSingleReport(args);
     } else {
-      return this.handleMultipleReports({
-        files,
-        fileType,
-        stockExchange,
-        reportType,
-      });
+      return this.handleMultipleReports(args);
     }
+  }
+
+  async getReports(userId: string): Promise<ReportEntity[]> {
+    const report = await this.reportRepository.find({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: ['deals', 'deals.purchase', 'deals.sale'],
+    });
+
+    return report;
   }
 
   private getTotalTaxFee(total: number) {

@@ -1,63 +1,38 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { Deal } from 'src/deals/entities/deals.entity';
 import { User } from 'src/user/entities/user.entity';
 import {
   Column,
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 @Entity()
-export class Deal {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  commission: number;
-
-  @Column()
-  date: Date;
-
-  @Column()
-  price: number;
-
-  @Column()
-  rate: number;
-
-  @Column()
-  sum: number;
-
-  @Column()
-  uah: number;
-}
-
-@Entity()
 export class Report {
+  @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  quantity: number;
+  @ApiProperty()
+  @Column({ type: 'double', precision: 10, scale: 2 })
+  totalMilitaryFee: number;
 
-  @Column()
-  ticker: string;
-
-  @Column()
+  @ApiProperty()
+  @Column({ type: 'double', precision: 10, scale: 2 })
   total: number;
 
-  @Column()
-  percent: number;
+  @ApiProperty()
+  @Column({ type: 'double', precision: 10, scale: 2 })
+  totalTaxFee: number;
 
-  @OneToOne(() => Deal, { cascade: true })
+  @ApiProperty({ type: () => Deal })
+  @OneToMany(() => Deal, (deal) => deal.report, { cascade: true })
   @JoinColumn()
-  purchase: Deal;
-
-  @OneToOne(() => Deal, { cascade: true })
-  @JoinColumn()
-  sale: Deal;
+  deals: Deal[];
 
   @ManyToOne(() => User, { nullable: true })
-  @JoinColumn()
   user: User;
 }

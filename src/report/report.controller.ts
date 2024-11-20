@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Query,
+  Request,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -11,28 +12,20 @@ import {
 } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import {
-  ApiBody,
-  ApiOperation,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtGuard } from '../auth/guards/jwt.quard';
 import { Deal } from './types/interfaces/deal.interface';
 import { DealReport } from './types/interfaces/deal-report.interface';
 import { ReportDealsDto } from './dto/report-deals.dto';
+import { Report } from './entities/report.entity';
 
 @ApiTags('report')
 @Controller('report')
 export class ReportController {
   constructor(private reportService: ReportService) {}
 
-  @Post('deals')
+  @Post('CreateReport')
   @UseInterceptors(FilesInterceptor('file', 10))
-  @ApiOperation({ summary: 'Getting deals' })
-  @ApiQuery({ name: 'type', description: 'Report type', required: false })
   @ApiBody({
     description: 'Loading trades report in JSON format for getting deals',
     required: true,
@@ -49,12 +42,14 @@ export class ReportController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Returns deals',
+    type: [Report],
   })
+  @UseGuards(JwtGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
-  async getDeals(
+  async getReport(
     @Query() reportDealsDto: ReportDealsDto,
     @UploadedFiles() files: Express.Multer.File[],
+    @Request() req: any,
   ): Promise<DealReport<Deal>> {
     try {
       const { reportType, fileType, stockExchange } = reportDealsDto;
@@ -64,6 +59,7 @@ export class ReportController {
         reportType,
         stockExchange,
         fileType,
+        user: req.user,
       });
     } catch (error) {
       throw new Error(error);
@@ -71,25 +67,12 @@ export class ReportController {
   }
 
   @UseGuards(JwtGuard)
-  @Get('protected')
+  @Get('GetReports')
   @ApiResponse({
     status: 200,
-    description: 'Returns protected resource',
+    type: [Report],
   })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthorized',
-    schema: {
-      example: {
-        statusCode: 401,
-        message: 'Invalid or missing Bearer token',
-        error: 'Unauthorized',
-      },
-    },
-  })
-  getProtectedResource() {
-    // This route is protected by the AuthGuard with the 'jwt' strategy
-    // If the request includes a valid JWT, this handler will be called
-    // If not, the request will be denied
-    return { message: 'This is a protected resource' };
+  getRepots(@Request() req: any): Promise<Report[]> {
+    return this.reportService.getReports(req.user.id);
   }
 }

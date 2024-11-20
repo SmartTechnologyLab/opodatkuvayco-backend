@@ -1,6 +1,8 @@
 import { Controller, Get, Injectable, Query } from '@nestjs/common';
 import { CurrencyRateService } from './currencyRate.service';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('currency-rate')
 @Injectable()
 @Controller('currency-rate')
 export class CurrencyRateController {

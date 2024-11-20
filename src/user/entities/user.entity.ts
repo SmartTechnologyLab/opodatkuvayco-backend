@@ -1,7 +1,10 @@
+import { Deal } from 'src/deals/entities/deals.entity';
+import { Report } from 'src/report/entities/report.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -22,4 +25,10 @@ export class User {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updated_at: Date;
+
+  @OneToMany(() => Report, (report) => report.user, { cascade: true })
+  reports: Report[];
+
+  @OneToMany(() => Deal, (deal) => deal.user, { cascade: true })
+  deals: Deal[];
 }
