@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Report } from 'src/report/entities/report.entity';
+import type {
+  Deal as IDeal,
+  TransactionDetails,
+} from 'src/report/types/interfaces/deal.interface';
 import { User } from 'src/user/entities/user.entity';
 import {
   Column,
@@ -11,12 +15,11 @@ import {
 } from 'typeorm';
 
 @Entity()
-export class Trade {
+export class Trade implements TransactionDetails {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ApiProperty()
   @ApiProperty()
   @Column('date')
   date: Date;
@@ -42,8 +45,8 @@ export class Trade {
   uah: number;
 }
 
-@Entity({ name: 'deals' })
-export class Deal {
+@Entity()
+export class Deal implements IDeal {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;

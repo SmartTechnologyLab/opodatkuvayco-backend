@@ -19,10 +19,20 @@ import { DealReport } from './types/interfaces/deal-report.interface';
 import { ReportDealsDto } from './dto/report-deals.dto';
 import { Report } from './entities/report.entity';
 
-@ApiTags('report')
+@ApiTags('Report')
 @Controller('report')
 export class ReportController {
   constructor(private reportService: ReportService) {}
+
+  @UseGuards(JwtGuard)
+  @Get('GetReports')
+  @ApiResponse({
+    status: 200,
+    type: [Report],
+  })
+  getRepots(@Request() req: any): Promise<Report[]> {
+    return this.reportService.getReports(req.user.id);
+  }
 
   @Post('CreateReport')
   @UseInterceptors(FilesInterceptor('file', 10))
@@ -64,15 +74,5 @@ export class ReportController {
     } catch (error) {
       throw new Error(error);
     }
-  }
-
-  @UseGuards(JwtGuard)
-  @Get('GetReports')
-  @ApiResponse({
-    status: 200,
-    type: [Report],
-  })
-  getRepots(@Request() req: any): Promise<Report[]> {
-    return this.reportService.getReports(req.user.id);
   }
 }

@@ -9,9 +9,10 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { DealReport } from '../types/interfaces/deal-report.interface';
 
 @Entity()
-export class Report {
+export class Report implements DealReport<Deal> {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string;

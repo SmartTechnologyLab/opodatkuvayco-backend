@@ -26,7 +26,7 @@ export class ReportService {
     private dealsService: DealsService,
   ) {}
 
-  async saveReport(
+  private async saveReport(
     report: DealReport<Deal>,
     user: User,
   ): Promise<ReportEntity> {
@@ -297,18 +297,21 @@ export class ReportService {
   }) {
     const getReportFunction = this.getReportFunction(reportType);
 
-    const report = this.reportReaderService.readReport(files.at(0), fileType);
+    const stockExchangeReport = this.reportReaderService.readReport(
+      files.at(0),
+      fileType,
+    );
 
     const { trades } = this.normalizeReportsService.getReportByStockExchange(
-      report,
+      stockExchangeReport,
       stockExchange,
     );
 
     const result = await getReportFunction(trades, stockExchange);
 
-    await this.saveReport(result, user);
+    const report = await this.saveReport(result, user);
 
-    return result;
+    return report;
   }
 
   private async handleMultipleReports({
@@ -377,9 +380,9 @@ export class ReportService {
       stockExchange,
     );
 
-    await this.saveReport(result, user);
+    const report = await this.saveReport(result, user);
 
-    return result;
+    return report;
   }
 
   async handleReports(args: {

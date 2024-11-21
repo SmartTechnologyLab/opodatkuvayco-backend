@@ -4,7 +4,7 @@ import { JwtGuard } from 'src/auth/guards/jwt.quard';
 import { Deal } from './entities/deals.entity';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('deals')
+@ApiTags('Deals')
 @Controller('deals')
 export class DealsController {
   constructor(private dealsService: DealsService) {}
