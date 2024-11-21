@@ -1,8 +1,10 @@
 import {
   Controller,
+  Get,
   Post,
   Query,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
   UsePipes,
   ValidationPipe,
@@ -15,7 +17,9 @@ import {
   ApiQuery,
   ApiResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { JwtGuard } from '../auth/guards/jwt.quard';
 import { Deal } from './types/interfaces/deal.interface';
 import { DealReport } from './types/interfaces/deal-report.interface';
 import { ReportDealsDto } from './dto/report-deals.dto';
@@ -64,5 +68,28 @@ export class ReportController {
     } catch (error) {
       throw new Error(error);
     }
+  }
+
+  @UseGuards(JwtGuard)
+  @Get('protected')
+  @ApiResponse({
+    status: 200,
+    description: 'Returns protected resource',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Invalid or missing Bearer token',
+        error: 'Unauthorized',
+      },
+    },
+  })
+  getProtectedResource() {
+    // This route is protected by the AuthGuard with the 'jwt' strategy
+    // If the request includes a valid JWT, this handler will be called
+    // If not, the request will be denied
+    return { message: 'This is a protected resource' };
   }
 }
