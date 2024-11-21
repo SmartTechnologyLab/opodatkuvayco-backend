@@ -10,6 +10,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
+  // any property not included in the whitelist is automatically stripped from the resulting object
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
+
   // Get allowed origins from environment variables
   const allowedOrigins = configService.get<string>('CLIENT_URL');
   // Get host and port from environment variables
