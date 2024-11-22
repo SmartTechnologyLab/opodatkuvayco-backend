@@ -7,17 +7,29 @@ import { FileTypeEnum } from 'src/reportReader/consts';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ReportDealsDto {
-  @ApiProperty({ enum: ReportTypeEnum, description: 'Type of the report' })
+  @ApiProperty({
+    enum: ReportTypeEnum,
+    enumName: 'ReportTypeEnum',
+    description: 'Type of the report',
+  })
   @IsEnum(ReportTypeEnum)
   @IsNotEmpty({ message: 'Report type query param is required' })
   reportType: ReportType;
 
-  @ApiProperty({ enum: FileTypeEnum, description: 'Type of the report' })
+  @ApiProperty({
+    enum: FileTypeEnum,
+    enumName: 'FileTypeEnum',
+    description: 'Type of the report',
+  })
   @IsEnum(FileTypeEnum)
   @IsNotEmpty({ message: 'File type query param is required' })
   fileType: FileType;
 
-  @ApiProperty({ enum: StockExchangeEnum, description: 'Type of the report' })
+  @ApiProperty({
+    enum: StockExchangeEnum,
+    enumName: 'StockExchanregeEnum',
+    description: 'Type of the report',
+  })
   @IsEnum(StockExchangeEnum)
   @IsNotEmpty({ message: 'Stock exchange query param is required' })
   stockExchange: StockExchangeEnum;
