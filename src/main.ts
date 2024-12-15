@@ -60,7 +60,6 @@ async function bootstrap() {
     .setTitle('Opodatkuvayco Backend')
     .setVersion('1.0')
     .addTag('REST API')
-    .addBasicAuth({ type: 'http' }, 'admin')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
