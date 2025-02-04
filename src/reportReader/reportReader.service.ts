@@ -22,7 +22,7 @@ export class ReportReaderService {
     return this.PARSER_BY_FILE_MAP[fileType](file);
   }
 
-  private parseXml(file: Express.Multer.File) {
+  parseXml(file: Express.Multer.File) {
     try {
       return this.xmlParser.parse(file.buffer);
     } catch (error) {
