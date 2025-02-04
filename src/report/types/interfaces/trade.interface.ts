@@ -8,4 +8,5 @@ export interface Trade {
   quantity: number;
   ticker: string;
   currency: string;
+  isNormalized?: boolean;
 }

@@ -5,6 +5,7 @@ import { IsEnum, IsNotEmpty } from 'class-validator';
 import { ReportTypeEnum } from '../consts/enums';
 import { FileTypeEnum } from 'src/reportReader/consts';
 import { ApiProperty } from '@nestjs/swagger';
+import { StockExchangeType } from 'src/normalizeReports/types/types/stock-exchange.type';
 
 export class ReportDealsDto {
   @ApiProperty({
@@ -32,5 +33,5 @@ export class ReportDealsDto {
   })
   @IsEnum(StockExchangeEnum)
   @IsNotEmpty({ message: 'Stock exchange query param is required' })
-  stockExchange: StockExchangeEnum;
+  stockExchange: StockExchangeType;
 }
