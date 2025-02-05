@@ -6,6 +6,7 @@ import { StockExchangeType } from 'src/normalizeReports/types/types/stock-exchan
 import { StockExchangeEnum } from './constants/enums';
 import { TradesByStockExchange } from './types/types/stockExchange';
 import { OperationType } from 'src/report/types/types/operation.type';
+import { parse } from 'date-fns';
 
 @Injectable()
 export class NormalizeTradesService {
@@ -62,7 +63,7 @@ export class NormalizeTradesService {
         commission: Number(trade.ibCommission),
         operation,
         quantity: Number(trade.quantity),
-        date: trade.tradeDate.split('').reverse().join(''),
+        date: parse(trade.tradeDate, 'yyyyMMdd', new Date()).toString(),
         currency: trade.currency,
         isNormalized: true,
       };
