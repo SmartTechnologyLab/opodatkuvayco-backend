@@ -1,5 +1,6 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Response, Request } from 'express';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
@@ -51,7 +52,7 @@ export class AuthService {
     return this.jwtService.decode(token);
   }
 
-  generateTokens(user: Omit<User, 'password'>) {
+  generateTokens(user: Pick<User, 'username' | 'id'>) {
     const accessToken = this.jwtService.sign({
       id: user.id,
       username: user.username,
@@ -83,6 +84,32 @@ export class AuthService {
       return this.generateTokens(user);
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
+  async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
+    try {
+      const userProfile = req.user as any;
+
+      let user: Pick<User, 'username' | 'id'> = await this.userService.findOne({
+        username: userProfile.profile.emails.at(0).value,
+      });
+
+      if (!user) {
+        const newUser = await this.userService.register({
+          username: userProfile.profile.emails.at(0).value,
+        });
+
+        user = newUser;
+      }
+
+      const tokens = this.generateTokens(user);
+
+      res.redirect(
+        `${process.env.CLIENT_URL}#accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
+      );
+    } catch (error) {
+      res.redirect(`${process.env.CLIENT_URL}#error=${error.message}`);
     }
   }
 }

@@ -3,9 +3,12 @@ import {
   Controller,
   Get,
   Post,
-  Request,
   UseGuards,
+  Req,
+  Res,
+  Request as _Request,
 } from '@nestjs/common';
+import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { LocalGuard } from './guards/local.guard';
 import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -14,6 +17,7 @@ import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { User } from '../user/entities/user.entity';
 import { RefreshGuard } from './guards/refresh.guard';
 import { RefreshDto } from './dto/refresh.dto';
+import { GoogleGuard } from './guards/google.guard';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -43,7 +47,7 @@ export class AuthController {
   })
   @Get('profile')
   @UseGuards(JwtGuard)
-  getProfile(@Request() req: any): User {
+  getProfile(@_Request() req: any): User {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...restCreds } = req.user;
 
@@ -61,5 +65,21 @@ export class AuthController {
   async refresh(@Body() refreshDto: RefreshDto) {
     const tokens = await this.authService.refreshToken(refreshDto.refreshToken);
     return tokens;
+  }
+
+  @Get('google')
+  @UseGuards(GoogleGuard)
+  googleAuth() {}
+
+  @Get('google/redirect')
+  @UseGuards(GoogleGuard)
+  async googleOAuthredirect(@Req() req: Request, @Res() res: Response) {
+    await this.authService.googleAuthRedirect(req, res);
+  }
+
+  @Post('test')
+  @UseGuards(JwtGuard)
+  test(@Req() req: Request) {
+    return req.user;
   }
 }

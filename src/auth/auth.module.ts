@@ -10,6 +10,8 @@ import { jwtConstants } from './constants';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
 import { RefreshGuard } from './guards/refresh.guard';
+import { GoogleOAuthStrategy } from './strategies/google.strategy';
+import { GoogleGuard } from './guards/google.guard';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { RefreshGuard } from './guards/refresh.guard';
     JwtStrategy,
     RefreshTokenStrategy,
     RefreshGuard,
+    GoogleOAuthStrategy,
+    GoogleGuard,
   ],
   controllers: [AuthController],
   exports: [AuthService],

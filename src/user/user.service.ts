@@ -19,7 +19,10 @@ export class UserService {
     const user = new User();
     user.id = uuidv4();
     user.username = username;
-    user.password = password;
+
+    if (password) {
+      user.password = password;
+    }
 
     const savedUser = await this.usersRepository.save(user);
 
