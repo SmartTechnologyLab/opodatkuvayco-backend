@@ -2,8 +2,13 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import { CreateUserDto, UserDto } from './dto/user.dto';
+import {
+  CreateUserByProviderDto,
+  CreateUserDto,
+  UserDto,
+} from './dto/user.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { Providers } from './constants/providers';
 
 @Injectable()
 export class UserService {
@@ -29,11 +34,37 @@ export class UserService {
     return this.toUserDto(savedUser);
   }
 
-  findOne(data: number | any): Promise<User | undefined> {
+  async registerByProvider({
+    username,
+    email,
+    provider,
+  }: CreateUserByProviderDto) {
+    const user = new User();
+
+    user.id = uuidv4();
+    user.username = username;
+    user.email = email;
+    user.provider = provider;
+
+    const savedUser = await this.usersRepository.save(user);
+
+    return this.toUserDto(savedUser);
+  }
+
+  async findOrCreateUser(user: User, provider: Providers) {
+    const existingUser = await this.findOne({
+      email: user.email,
+      provider,
+    });
+
+    return existingUser ? existingUser : await this.registerByProvider(user);
+  }
+
+  findOne(data: Partial<User>): Promise<Partial<User> | undefined> {
     return this.usersRepository.findOne({ where: data });
   }
 
-  async validateUser({ username, password }: UserDto): Promise<User> {
+  async validateUser({ username, password }: UserDto): Promise<Partial<User>> {
     const user = await this.findOne({ username });
 
     if (!user || user.password !== password) {
@@ -43,7 +74,7 @@ export class UserService {
     return user;
   }
 
-  toUserDto(user: Omit<User, 'password'>) {
+  toUserDto(user: Omit<Partial<User>, 'password'>) {
     const { id, username } = user;
 
     return { id, username };
