@@ -91,11 +91,12 @@ export class AuthService {
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     try {
       const userProfile = req.user as User;
-
+      console.log(userProfile);
       const user = await this.userService.findOrCreateUser(
         userProfile,
         Providers.Google,
       );
+      console.log('user', user);
 
       const tokens = this.generateTokens(user);
 

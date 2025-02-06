@@ -57,6 +57,7 @@ export class NormalizeTradesService {
       }
 
       const operation = trade.buySell.toLowerCase() as OperationType;
+
       return {
         ticker: trade.symbol,
         price: Number(trade.tradePrice),
