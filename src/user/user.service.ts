@@ -34,15 +34,10 @@ export class UserService {
     return this.toUserDto(savedUser);
   }
 
-  async registerByProvider({
-    username,
-    email,
-    provider,
-  }: CreateUserByProviderDto) {
+  async registerByProvider({ email, provider }: CreateUserByProviderDto) {
     const user = new User();
 
     user.id = uuidv4();
-    user.username = username;
     user.email = email;
     user.provider = provider;
 
@@ -56,6 +51,8 @@ export class UserService {
       email: user.email,
       provider,
     });
+
+    console.log('existingUser', existingUser);
 
     return existingUser ? existingUser : await this.registerByProvider(user);
   }
