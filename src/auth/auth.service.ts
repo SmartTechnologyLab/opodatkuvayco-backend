@@ -6,6 +6,7 @@ import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/user/entities/user.entity';
 import { jwtConstants } from './constants';
+import { Providers } from 'src/user/constants/providers';
 
 @Injectable()
 export class AuthService {
@@ -52,7 +53,7 @@ export class AuthService {
     return this.jwtService.decode(token);
   }
 
-  generateTokens(user: Pick<User, 'username' | 'id'>) {
+  generateTokens(user: Partial<User>) {
     const accessToken = this.jwtService.sign({
       id: user.id,
       username: user.username,
@@ -89,19 +90,12 @@ export class AuthService {
 
   async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
     try {
-      const userProfile = req.user as any;
+      const userProfile = req.user as User;
 
-      let user: Pick<User, 'username' | 'id'> = await this.userService.findOne({
-        username: userProfile.profile.emails.at(0).value,
-      });
-
-      if (!user) {
-        const newUser = await this.userService.register({
-          username: userProfile.profile.emails.at(0).value,
-        });
-
-        user = newUser;
-      }
+      const user = await this.userService.findOrCreateUser(
+        userProfile,
+        Providers.Google,
+      );
 
       const tokens = this.generateTokens(user);
 

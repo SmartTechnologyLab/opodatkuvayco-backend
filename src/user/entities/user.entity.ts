@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Providers } from '../constants/providers';
 
 @Entity()
 export class User {
@@ -19,6 +20,14 @@ export class User {
   @ApiProperty()
   @Column({ unique: true })
   username: string;
+
+  @ApiProperty()
+  @Column()
+  email: string;
+
+  @ApiProperty()
+  @Column()
+  provider: Providers;
 
   @Column()
   password: string;
