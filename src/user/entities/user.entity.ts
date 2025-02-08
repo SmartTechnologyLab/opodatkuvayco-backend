@@ -25,14 +25,23 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @ApiProperty()
+  @ApiProperty({ enum: Providers, enumName: 'Providers' })
   @Column({
     type: 'simple-array',
   })
   providers: Providers[];
 
+  @ApiProperty()
   @Column()
   password: string;
+
+  @ApiProperty()
+  @Column()
+  twoFactorAuthentificationSecret: string;
+
+  @ApiProperty()
+  @Column({ type: 'boolean' })
+  twoFactorAuthentificationEnabled: boolean;
 
   @ApiProperty()
   @CreateDateColumn({ type: 'timestamp' })

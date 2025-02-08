@@ -8,6 +8,9 @@ import { User } from 'src/user/entities/user.entity';
 import { jwtConstants } from './constants';
 import { Providers } from 'src/user/constants/providers';
 import { UserRequest } from './types/userRequest';
+import { authenticator } from 'otplib';
+import { toDataURL } from 'qrcode';
+import { Auth2FADto } from './dto/auth2fa.dto';
 
 @Injectable()
 export class AuthService {
@@ -29,8 +32,8 @@ export class AuthService {
     };
   }
 
-  async validateUser({ username, password: pass }: LoginDto) {
-    const user = await this.userService.findOne({ username });
+  async validateUser({ email, password: pass }: LoginDto) {
+    const user = await this.userService.findOne({ email });
 
     if (user && (await bcrypt.compare(pass, user.password))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -63,6 +66,32 @@ export class AuthService {
 
     const refreshToken = this.jwtService.sign(
       { id: user.id, username: user.email },
+      {
+        secret: jwtConstants.refreshSecret,
+        expiresIn: '7d',
+      },
+    );
+
+    return { accessToken, refreshToken };
+  }
+
+  generateTokensFor2Fa(
+    user: Partial<User>,
+    isTwoFactorAuthenticationEnabled: boolean,
+    isTwoFactorAuthenticated: boolean,
+  ) {
+    const accessToken = this.jwtService.sign({
+      id: user.id,
+      email: user.email,
+      isTwoFactorAuthenticationEnabled,
+      isTwoFactorAuthenticated,
+    });
+
+    const refreshToken = this.jwtService.sign(
+      {
+        id: user.id,
+        username: user.email,
+      },
       {
         secret: jwtConstants.refreshSecret,
         expiresIn: '7d',
@@ -106,6 +135,90 @@ export class AuthService {
       );
     } catch (error) {
       res.redirect(`${process.env.CLIENT_URL}#error=${error.message}`);
+    }
+  }
+
+  async generateTwoFactorAuthSecret(user: User) {
+    const secret = authenticator.generateSecret();
+
+    const otpAuthUrl = authenticator.keyuri(
+      user.email,
+      process.env.APP_NAME,
+      secret,
+    );
+
+    await this.userService.updateUser(user.id, {
+      twoFactorAuthentificationSecret: secret,
+      twoFactorAuthentificationEnabled: true,
+    });
+
+    return otpAuthUrl;
+  }
+
+  async generateQRCodeDataUrl(otpAuthUrl: string) {
+    return toDataURL(otpAuthUrl);
+  }
+
+  isTwoFactorAuthenticationCodeValid(
+    twoFactorAuthenticationCode: string,
+    user: User,
+  ) {
+    return authenticator.verify({
+      token: twoFactorAuthenticationCode,
+      secret: user.twoFactorAuthentificationSecret,
+    });
+  }
+
+  async loginWith2fa(user: Partial<User>) {
+    return {
+      email: user.email,
+      access_token: this.generateTokensFor2Fa(
+        user,
+        !!user.twoFactorAuthentificationEnabled,
+        true,
+      ),
+    };
+  }
+
+  async authenticate2fa(user: User, body: Auth2FADto) {
+    const isCodeValid = this.isTwoFactorAuthenticationCodeValid(
+      body.code,
+      user,
+    );
+
+    if (!isCodeValid) {
+      throw new UnauthorizedException('Wrong authentication code');
+    }
+
+    return this.loginWith2fa(user);
+  }
+
+  async enableTwoFactorAuthentication(user: User) {
+    try {
+      const otpAuthUrl = await this.generateTwoFactorAuthSecret(user);
+
+      const qrCodeDataUrl = await this.generateQRCodeDataUrl(otpAuthUrl);
+
+      return qrCodeDataUrl;
+    } catch {
+      throw new UnauthorizedException(
+        'Failed to enable two-factor authentication',
+      );
+    }
+  }
+
+  async disableTwoFactorAuthentication(user: User) {
+    try {
+      await this.userService.updateUser(user.id, {
+        twoFactorAuthentificationSecret: null,
+        twoFactorAuthentificationEnabled: false,
+      });
+
+      return 'Two-factor authentication disabled';
+    } catch {
+      throw new UnauthorizedException(
+        'Failed to disable two-factor authentication',
+      );
     }
   }
 }

@@ -5,14 +5,12 @@ import { FreedomFinanceTrade } from 'src/normalizeReports/types/interfaces/freed
 import { StockExchangeType } from 'src/normalizeReports/types/types/stock-exchange.type';
 import { StockExchangeEnum } from './constants/enums';
 import { TradesByStockExchange } from './types/types/stockExchange';
-import { OperationType } from 'src/report/types/types/operation.type';
-import { parse } from 'date-fns';
 
 @Injectable()
 export class NormalizeTradesService {
   constructor() {}
 
-  private NORMALIZER_BY_STOCK_EXCHANGE = {
+  private MAP_STOCK_EXCHANGE_TO_TRADE_TYPE = {
     [StockExchangeEnum.FREEDOM_FINANCE]:
       this.normalizedFreedomFinanceTrades.bind(this),
     [StockExchangeEnum.IBRK]: this.normalizedIbkrTrades.bind(this),
@@ -22,52 +20,50 @@ export class NormalizeTradesService {
     stockExchange: StockExchangeType,
     trades: TradesByStockExchange[StockExchangeEnum],
   ): Trade[] {
-    return this.NORMALIZER_BY_STOCK_EXCHANGE[stockExchange](trades);
-  }
-
-  private isNormalizedTrade(trade: Trade | any): trade is Trade {
-    return trade?.isNormalized;
+    return this.MAP_STOCK_EXCHANGE_TO_TRADE_TYPE[stockExchange](trades);
   }
 
   private normalizedFreedomFinanceTrades(
     trades: Array<FreedomFinanceTrade | Trade>,
   ): Trade[] {
-    return trades.map((trade) => {
-      if (this.isNormalizedTrade(trade)) {
-        return trade;
-      }
+    const conformingTrades: Trade[] = trades.filter(this.isITrade);
+    const nonConformingTrades = trades.filter(
+      (trade) => !this.isITrade(trade),
+    ) as FreedomFinanceTrade[];
 
-      return {
-        ticker: trade.instr_nm?.split('.').at(0),
-        price: trade.p,
-        commission: trade.commission,
-        operation: trade.operation,
-        quantity: trade.q,
-        date: trade.date,
-        currency: trade.curr_c,
-        isNormalized: true,
-      };
-    });
+    const mappedTrades: Trade[] = nonConformingTrades.map((trade) => ({
+      ticker: trade.instr_nm?.split('.').at(0),
+      price: trade.p,
+      commission: trade.commission,
+      operation: trade.operation,
+      quantity: trade.q,
+      date: trade.date,
+      currency: trade.curr_c,
+    }));
+
+    return [...conformingTrades, ...mappedTrades];
   }
 
   private normalizedIbkrTrades(trades: Array<IbkrTrade | Trade>): Trade[] {
-    return trades.map((trade) => {
-      if (this.isNormalizedTrade(trade)) {
-        return trade;
-      }
+    const conformingTrades: Trade[] = trades.filter(this.isITrade);
+    const nonConformingTrades = trades.filter(
+      (trades) => !this.isITrade(trades),
+    ) as IbkrTrade[];
 
-      const operation = trade.buySell.toLowerCase() as OperationType;
+    const normalizedTrades: Trade[] = nonConformingTrades.map((trade) => ({
+      ticker: trade.symbol,
+      currency: trade.currency,
+      date: trade.dateTime,
+      operation: 'buy',
+      price: 0,
+      commission: 0,
+      quantity: trade.amount,
+    }));
 
-      return {
-        ticker: trade.symbol,
-        price: Number(trade.tradePrice),
-        commission: Number(trade.ibCommission),
-        operation,
-        quantity: Number(trade.quantity),
-        date: parse(trade.tradeDate, 'yyyyMMdd', new Date()).toString(),
-        currency: trade.currency,
-        isNormalized: true,
-      };
-    });
+    return [...conformingTrades, ...normalizedTrades];
+  }
+
+  isITrade(trade: unknown): trade is Trade {
+    return trade.hasOwnProperty('ticker');
   }
 }

@@ -1,3 +1,3 @@
 import { FileTypeEnum } from '../consts';
 
-export type FileType = keyof typeof FileTypeEnum;
+export type FileType = FileTypeEnum.JSON | FileTypeEnum.XML;

@@ -12,6 +12,8 @@ import { User } from '../user/entities/user.entity';
 import { RefreshGuard } from './guards/refresh.guard';
 import { GoogleOAuthStrategy } from './strategies/google.strategy';
 import { GoogleGuard } from './guards/google.guard';
+import { Jwt2faAuthGuard } from './guards/jwt-2fa.guard';
+import { Jwt2faStrategy } from './strategies/jwt-2fa.strategy';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { GoogleGuard } from './guards/google.guard';
     RefreshGuard,
     GoogleOAuthStrategy,
     GoogleGuard,
+    Jwt2faAuthGuard,
+    Jwt2faStrategy,
   ],
   controllers: [AuthController],
   exports: [AuthService],
