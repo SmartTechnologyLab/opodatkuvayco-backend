@@ -17,8 +17,8 @@ export class NormalizeReportsService {
     [StockExchangeEnum.IBRK]: this.normalizeIBKRReport.bind(this),
   };
 
-  getReportByStockExchange<T>(
-    report: T,
+  getReportByStockExchange(
+    report: any,
     stockExchange: StockExchangeType,
   ): Report<Trade> {
     return this.MAP_STOCK_EXCHANGE_TO_REPORT_TYPE[stockExchange](report);
@@ -44,7 +44,7 @@ export class NormalizeReportsService {
       dateStart,
       trades: this.normalizeTradeService.getNormalizedTrades(
         StockExchangeEnum.IBRK,
-        report.FlexQueryResponse.FlexStatements.FlexStatement.Trades.Trade,
+        [],
       ),
     };
   }

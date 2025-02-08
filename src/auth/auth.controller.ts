@@ -7,8 +7,9 @@ import {
   Req,
   Res,
   Request as _Request,
+  Delete,
 } from '@nestjs/common';
-import { Response, Request } from 'express';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LocalGuard } from './guards/local.guard';
 import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -19,6 +20,8 @@ import { RefreshGuard } from './guards/refresh.guard';
 import { RefreshDto } from './dto/refresh.dto';
 import { GoogleGuard } from './guards/google.guard';
 import { UserRequest } from './types/userRequest';
+import { Auth2FADto } from './dto/auth2fa.dto';
+import { Jwt2faAuthGuard } from './guards/jwt-2fa.guard';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -47,18 +50,12 @@ export class AuthController {
     type: User,
   })
   @Get('profile')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, Jwt2faAuthGuard)
   getProfile(@_Request() req: any): User {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...restCreds } = req.user;
 
     return restCreds;
-  }
-
-  @Post('logout')
-  logout() {
-    // Respond with instructions for the client to delete the JWT
-    return { message: 'Please delete your JWT' };
   }
 
   @Post('refresh')
@@ -78,9 +75,21 @@ export class AuthController {
     await this.authService.googleAuthRedirect(req, res);
   }
 
-  @Post('test')
+  @Post('2fa/turn-on')
   @UseGuards(JwtGuard)
-  test(@Req() req: Request) {
-    return req.user;
+  async turnOn2fa(@Req() req: UserRequest) {
+    return await this.authService.enableTwoFactorAuthentication(req.user);
+  }
+
+  @Delete('2fa/turn-off')
+  @UseGuards(JwtGuard)
+  async turnOff2fa(@Req() req: UserRequest) {
+    return await this.authService.disableTwoFactorAuthentication(req.user);
+  }
+
+  @Post('2fa/authenticate')
+  @UseGuards(JwtGuard)
+  async authenticate2fa(@Req() req: UserRequest, @Body() body: Auth2FADto) {
+    return await this.authService.authenticate2fa(req.user, body);
   }
 }
