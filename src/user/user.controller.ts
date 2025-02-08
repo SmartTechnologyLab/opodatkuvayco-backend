@@ -8,8 +8,9 @@ export class UserController {
   @Post()
   register(
     @Body('username') username: string,
+    @Body('email') email: string,
     @Body('password') password: string,
   ) {
-    return this.userService.register({ username, password });
+    return this.userService.register({ username, email, password });
   }
 }

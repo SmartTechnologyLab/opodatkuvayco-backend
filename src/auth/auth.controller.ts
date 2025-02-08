@@ -18,6 +18,7 @@ import { User } from '../user/entities/user.entity';
 import { RefreshGuard } from './guards/refresh.guard';
 import { RefreshDto } from './dto/refresh.dto';
 import { GoogleGuard } from './guards/google.guard';
+import { UserRequest } from './types/userRequest';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -73,7 +74,7 @@ export class AuthController {
 
   @Get('google/redirect')
   @UseGuards(GoogleGuard)
-  async googleOAuthredirect(@Req() req: Request, @Res() res: Response) {
+  async googleOAuthredirect(@Req() req: UserRequest, @Res() res: Response) {
     await this.authService.googleAuthRedirect(req, res);
   }
 
