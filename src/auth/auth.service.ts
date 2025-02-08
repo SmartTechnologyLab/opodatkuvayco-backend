@@ -58,11 +58,11 @@ export class AuthService {
   generateTokens(user: Partial<User>) {
     const accessToken = this.jwtService.sign({
       id: user.id,
-      username: user.username,
+      email: user.email,
     });
 
     const refreshToken = this.jwtService.sign(
-      { id: user.id, username: user.username },
+      { id: user.id, username: user.email },
       {
         secret: jwtConstants.refreshSecret,
         expiresIn: '7d',

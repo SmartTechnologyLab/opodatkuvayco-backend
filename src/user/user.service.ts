@@ -2,13 +2,9 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import {
-  CreateUserByProviderDto,
-  CreateUserDto,
-  UserDto,
-} from './dto/user.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { CreateUserByProviderDto, CreateUserDto } from './dto/user.dto';
 import { Providers } from './constants/providers';
+import { UserBuilder } from './builder/user';
 
 @Injectable()
 export class UserService {
@@ -28,10 +24,15 @@ export class UserService {
       throw new UnauthorizedException(`User with ${email} is already exists`);
     }
 
-    const user = new User();
-    user.id = uuidv4();
-    user.username = username;
-    user.password = password;
+    const userBuilder = new UserBuilder();
+
+    const user = userBuilder
+      .setEmail(email)
+      .setPassword(password)
+      .setUsername(username)
+      .setProviders([Providers.Own])
+      .setId()
+      .build();
 
     const savedUser = await this.usersRepository.save(user);
 
@@ -43,20 +44,18 @@ export class UserService {
     provider,
     username,
   }: CreateUserByProviderDto) {
-    const user = new User();
+    const userBuilder = new UserBuilder();
 
-    user.id = uuidv4();
-    user.email = email;
-    user.username = username;
-    user.providers = [provider];
+    const user = userBuilder
+      .setEmail(email)
+      .setUsername(username)
+      .setId()
+      .setProviders([provider])
+      .build();
 
     const savedUser = await this.usersRepository.save(user);
 
     return this.toUserDto(savedUser);
-  }
-
-  mapProvidersToNumbers(providers: Providers[]) {
-    return providers.map(Number) || [];
   }
 
   async findOrCreateUserWithProvider(user: User, provider: Providers) {
@@ -84,19 +83,13 @@ export class UserService {
     return this.usersRepository.findOne({ where: data });
   }
 
-  async validateUser({ email, password }: UserDto): Promise<Partial<User>> {
-    const user = await this.findOne({ email });
+  toUserDto(user: Pick<Partial<User>, 'username' | 'email' | 'id'>) {
+    const { id, username, email } = user;
 
-    if (!user || user.password !== password) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    return user;
+    return { id, username, email };
   }
 
-  toUserDto(user: Omit<Partial<User>, 'password'>) {
-    const { id, username } = user;
-
-    return { id, username };
+  mapProvidersToNumbers(providers: Providers[] | undefined) {
+    return providers?.map(Number) || [];
   }
 }
