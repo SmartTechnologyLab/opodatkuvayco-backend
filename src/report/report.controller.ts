@@ -83,30 +83,4 @@ export class ReportController {
       throw new Error(error);
     }
   }
-
-  // @Post('read-file')
-  // @UseInterceptors(FilesInterceptor('file', 10))
-  // @UsePipes(new ValidationPipe({ transform: true }))
-  // @ApiConsumes('multipart/form-data')
-  // @ApiBody({
-  //   description: 'Loading trades report in JSON format for getting deals',
-  //   required: true,
-  //   schema: {
-  //     type: 'object',
-  //     properties: {
-  //       file: {
-  //         type: 'string',
-  //         format: 'binary',
-  //         description: 'JSON file containing trades report',
-  //       },
-  //     },
-  //   },
-  // })
-  // async readFile(@UploadedFiles() files: Express.Multer.File[]): Promise<any> {
-  //   const report = this.readReportService.parseXml(files.at(0));
-  //   return this.normalizeReportService.getReportByStockExchange(
-  //     report,
-  //     StockExchangeEnum.IBRK,
-  //   );
-  // }
 }
