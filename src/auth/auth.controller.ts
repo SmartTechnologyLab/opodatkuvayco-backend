@@ -6,7 +6,6 @@ import {
   UseGuards,
   Req,
   Res,
-  Request as _Request,
   Delete,
 } from '@nestjs/common';
 import { Response } from 'express';
@@ -51,7 +50,7 @@ export class AuthController {
   })
   @Get('profile')
   @UseGuards(JwtGuard, Jwt2faAuthGuard)
-  getProfile(@_Request() req: any): User {
+  getProfile(@Req() req: UserRequest): Omit<User, 'password'> {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...restCreds } = req.user;
 
