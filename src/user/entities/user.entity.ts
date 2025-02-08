@@ -18,16 +18,18 @@ export class User {
   id: string;
 
   @ApiProperty()
-  @Column({ unique: true })
+  @Column()
   username: string;
 
   @ApiProperty()
-  @Column()
+  @Column({ unique: true })
   email: string;
 
   @ApiProperty()
-  @Column()
-  provider: Providers;
+  @Column({
+    type: 'simple-array',
+  })
+  providers: Providers[];
 
   @Column()
   password: string;

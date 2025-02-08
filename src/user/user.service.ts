@@ -18,51 +18,74 @@ export class UserService {
   ) {}
 
   async register({
-    username,
+    email,
     password,
+    username,
   }: CreateUserDto): Promise<{ username: string; id: string }> {
+    const existingUser = await this.findOne({ email });
+
+    if (existingUser) {
+      throw new UnauthorizedException(`User with ${email} is already exists`);
+    }
+
     const user = new User();
     user.id = uuidv4();
     user.username = username;
-
-    if (password) {
-      user.password = password;
-    }
+    user.password = password;
 
     const savedUser = await this.usersRepository.save(user);
 
     return this.toUserDto(savedUser);
   }
 
-  async registerByProvider({ email, provider }: CreateUserByProviderDto) {
+  async registerByProvider({
+    email,
+    provider,
+    username,
+  }: CreateUserByProviderDto) {
     const user = new User();
 
     user.id = uuidv4();
     user.email = email;
-    user.provider = provider;
+    user.username = username;
+    user.providers = [provider];
 
     const savedUser = await this.usersRepository.save(user);
 
     return this.toUserDto(savedUser);
   }
 
-  async findOrCreateUser(user: User, provider: Providers) {
-    const existingUser = await this.findOne({
-      email: user.email,
-      provider,
-    });
-
-    console.log('existingUser', existingUser);
-
-    return existingUser ? existingUser : await this.registerByProvider(user);
+  mapProvidersToNumbers(providers: Providers[]) {
+    return providers.map(Number) || [];
   }
 
-  findOne(data: Partial<User>): Promise<Partial<User> | undefined> {
+  async findOrCreateUserWithProvider(user: User, provider: Providers) {
+    const existingUser = await this.findOne({
+      email: user.email,
+      username: user.username,
+    });
+
+    const userProviders = this.mapProvidersToNumbers(existingUser?.providers);
+
+    if (existingUser && !userProviders.includes(provider)) {
+      await this.usersRepository.update(existingUser.id, {
+        providers: [...existingUser.providers, provider],
+      });
+    }
+
+    return existingUser
+      ? existingUser
+      : await this.registerByProvider({ ...user, provider });
+  }
+
+  findOne(
+    data: Omit<Partial<User>, 'providers' | 'password'>,
+  ): Promise<Partial<User> | undefined> {
     return this.usersRepository.findOne({ where: data });
   }
 
-  async validateUser({ username, password }: UserDto): Promise<Partial<User>> {
-    const user = await this.findOne({ username });
+  async validateUser({ email, password }: UserDto): Promise<Partial<User>> {
+    const user = await this.findOne({ email });
 
     if (!user || user.password !== password) {
       throw new UnauthorizedException('Invalid credentials');

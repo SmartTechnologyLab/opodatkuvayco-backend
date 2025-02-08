@@ -1,12 +1,13 @@
 import { Injectable, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Response, Request } from 'express';
+import { Response } from 'express';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/user/entities/user.entity';
 import { jwtConstants } from './constants';
 import { Providers } from 'src/user/constants/providers';
+import { UserRequest } from './types/userRequest';
 
 @Injectable()
 export class AuthService {
@@ -53,6 +54,7 @@ export class AuthService {
     return this.jwtService.decode(token);
   }
 
+  // TODO: pass email for jwt sign
   generateTokens(user: Partial<User>) {
     const accessToken = this.jwtService.sign({
       id: user.id,
@@ -88,15 +90,14 @@ export class AuthService {
     }
   }
 
-  async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
+  async googleAuthRedirect(@Req() req: UserRequest, @Res() res: Response) {
     try {
-      const userProfile = req.user as User;
-      console.log(userProfile);
-      const user = await this.userService.findOrCreateUser(
+      const userProfile = req.user;
+
+      const user = await this.userService.findOrCreateUserWithProvider(
         userProfile,
         Providers.Google,
       );
-      console.log('user', user);
 
       const tokens = this.generateTokens(user);
 

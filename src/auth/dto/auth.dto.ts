@@ -17,6 +17,10 @@ export class RegisterDto {
   username: string;
 
   @ApiProperty()
+  @IsNotEmpty({ message: 'Email field cannot be empty' })
+  email: string;
+
+  @ApiProperty()
   @IsNotEmpty({ message: 'Password field cannot be empty' })
   password: string;
 }

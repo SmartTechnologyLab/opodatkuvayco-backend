@@ -5,12 +5,18 @@ export class UserDto {
   @IsNotEmpty({ message: 'Name field cannot be empty' })
   username: string;
 
+  @IsNotEmpty({ message: 'Email field cannot be empty' })
+  email: string;
+
   @IsNotEmpty({ message: 'Password field cannot be empty' })
   password: string;
 }
 
 export class CreateUserDto {
-  @IsNotEmpty({ message: 'Name field cannot be empty' })
+  @IsNotEmpty({ message: 'Email field cannot be empty' })
+  email: string;
+
+  @IsNotEmpty({ message: 'Username field cannot be empty' })
   username: string;
 
   @IsNotEmpty({ message: 'Password field cannot be empty' })
