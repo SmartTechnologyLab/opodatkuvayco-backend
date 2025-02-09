@@ -120,10 +120,11 @@ export class UserService {
     return this.findOne({ id: userId });
   }
 
-  toUserDto(user: Pick<Partial<User>, 'username' | 'email' | 'id'>) {
-    const { id, username, email } = user;
+  toUserDto(user: Partial<User>) {
+    const { id, username, email, twoFactorAuthentificationEnabled, providers } =
+      user;
 
-    return { id, username, email };
+    return { id, username, email, twoFactorAuthentificationEnabled, providers };
   }
 
   mapProvidersToNumbers(providers: Providers[] | undefined) {
