@@ -14,12 +14,15 @@ import { GoogleOAuthStrategy } from './strategies/google.strategy';
 import { GoogleGuard } from './guards/google.guard';
 import { Jwt2faAuthGuard } from './guards/jwt-2fa.guard';
 import { Jwt2faStrategy } from './strategies/jwt-2fa.strategy';
+import { MailModule } from 'src/mail/mail.module';
+import { LocalGuard } from './guards/local.guard';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     PassportModule,
     UserModule,
+    MailModule,
     JwtModule.register({
       secret: jwtConstants.accessSecret,
       signOptions: { expiresIn: '15m' },
@@ -33,6 +36,7 @@ import { Jwt2faStrategy } from './strategies/jwt-2fa.strategy';
     RefreshGuard,
     GoogleOAuthStrategy,
     GoogleGuard,
+    LocalGuard,
     Jwt2faAuthGuard,
     Jwt2faStrategy,
   ],

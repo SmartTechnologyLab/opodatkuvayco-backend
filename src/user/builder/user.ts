@@ -1,6 +1,7 @@
 import { Providers } from '../constants/providers';
 import { User } from '../entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
+import * as crypto from 'crypto';
 
 export class UserBuilder {
   private user: User;
@@ -31,6 +32,13 @@ export class UserBuilder {
 
   setProviders(providers: Providers[]) {
     this.user.providers = providers;
+    return this;
+  }
+
+  setConfirmationToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+
+    this.user.confirmationToken = token;
     return this;
   }
 

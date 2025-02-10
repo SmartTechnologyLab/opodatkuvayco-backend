@@ -7,6 +7,7 @@ import {
   Req,
   Res,
   Patch,
+  Query,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
@@ -47,6 +48,11 @@ export class AuthController {
   async refresh(@Body() refreshDto: RefreshDto) {
     const tokens = await this.authService.refreshToken(refreshDto.refreshToken);
     return tokens;
+  }
+
+  @Post('confirm-email')
+  async confirmEmail(@Query('token') token: string) {
+    return await this.authService.confirmEmail(token);
   }
 
   @Get('google')
