@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cors from 'cors';
 import * as bodyParser from 'body-parser';
+import * as dotenv from 'dotenv';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import * as basicAuth from 'express-basic-auth';
@@ -10,6 +11,8 @@ import * as basicAuth from 'express-basic-auth';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+
+  dotenv.config();
 
   // any property not included in the whitelist is automatically stripped from the resulting object
   app.useGlobalPipes(

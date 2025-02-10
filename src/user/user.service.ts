@@ -16,11 +16,7 @@ export class UserService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async register({
-    email,
-    password,
-    username,
-  }: CreateUserDto): Promise<{ username: string; id: string }> {
+  async register({ email, password, username }: CreateUserDto) {
     const existingUser = await this.findOne({ email });
 
     if (existingUser) {
@@ -34,12 +30,16 @@ export class UserService {
       .setPassword(password)
       .setUsername(username)
       .setProviders([Providers.Own])
+      .setConfirmationToken()
       .setId()
       .build();
 
     const savedUser = await this.usersRepository.save(user);
 
-    return this.toUserDto(savedUser);
+    return {
+      ...this.toUserDto(savedUser),
+      confirmationToken: user.confirmationToken,
+    };
   }
 
   async registerByProvider({
@@ -112,6 +112,10 @@ export class UserService {
     data: Omit<Partial<User>, 'providers' | 'password'>,
   ): Promise<Partial<User> | undefined> {
     return this.usersRepository.findOne({ where: data });
+  }
+
+  async findUserByConfimationToken(token: string) {
+    return await this.findOne({ confirmationToken: token });
   }
 
   async updateUser(userId: string, data: Partial<User>) {

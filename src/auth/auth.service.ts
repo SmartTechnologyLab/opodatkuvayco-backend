@@ -11,19 +11,26 @@ import { UserRequest } from './types/userRequest';
 import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
 import { Auth2FADto } from './dto/auth2fa.dto';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private jwtService: JwtService,
     private userService: UserService,
+    private mailService: MailService,
   ) {}
 
   async login(loginDto: LoginDto) {
+    console.log(loginDto);
     const user = await this.validateUser(loginDto);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.emailConfirmed) {
+      throw new UnauthorizedException('Email not confirmed');
     }
 
     return {
@@ -49,6 +56,11 @@ export class AuthService {
     const newUser = await this.userService.register(registerDto);
 
     if (newUser) {
+      await this.mailService.sendEmailConfirmation(
+        newUser.email,
+        newUser.confirmationToken,
+      );
+
       return newUser;
     }
   }
@@ -73,6 +85,19 @@ export class AuthService {
     );
 
     return { accessToken, refreshToken };
+  }
+
+  async confirmEmail(token: string) {
+    const user = await this.userService.findUserByConfimationToken(token);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    await this.userService.updateUser(user.id, {
+      confirmationToken: null,
+      emailConfirmed: true,
+    });
   }
 
   generateTokensFor2Fa(

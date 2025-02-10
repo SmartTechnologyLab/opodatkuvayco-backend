@@ -31,11 +31,16 @@ export class User {
   })
   providers: Providers[];
 
-  @ApiProperty()
   @Column()
   password: string;
 
+  @Column()
+  confirmationToken: string;
+
   @ApiProperty()
+  @Column({ type: 'boolean' })
+  emailConfirmed: boolean;
+
   @Column()
   twoFactorAuthentificationSecret: string;
 
