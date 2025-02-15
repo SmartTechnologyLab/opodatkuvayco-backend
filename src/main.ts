@@ -6,6 +6,7 @@ import * as bodyParser from 'body-parser';
 import * as dotenv from 'dotenv';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import * as basicAuth from 'express-basic-auth';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -48,11 +49,20 @@ async function bootstrap() {
     }),
   );
 
+  app.use(
+    '/docs*',
+    basicAuth({
+      authorizer: (username: string, password: string) =>
+        username === process.env.SWAGGER_HTTP_BASIC_AUTH_USERNAME &&
+        password === process.env.SWAGGER_HTTP_BASIC_AUTH_PASSWORD,
+      challenge: true,
+    }),
+  );
+
   const config = new DocumentBuilder()
     .setTitle('Opodatkuvayco Backend')
     .setVersion('1.0')
     .addTag('REST API')
-    .addBasicAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
