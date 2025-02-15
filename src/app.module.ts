@@ -15,6 +15,7 @@ import { CurrencyRateModule } from './currencyExchange/currencyRate.module';
 import { DateFormatModule } from './dateTimeFormat/dateFormat.module';
 import { Deal, Trade } from './deals/entities/deals.entity';
 import { Report } from './report/entities/report.entity';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { Report } from './report/entities/report.entity';
     AuthModule,
     UserModule,
     DateFormatModule,
+    MailModule,
   ],
   controllers: [HealthController],
   providers: [

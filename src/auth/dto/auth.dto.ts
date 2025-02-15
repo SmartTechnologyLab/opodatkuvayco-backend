@@ -1,10 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
+import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty()
   @IsNotEmpty({ message: 'Name field cannot be empty' })
-  username: string;
+  @IsEmail()
+  email: string;
 
   @ApiProperty()
   @IsNotEmpty({ message: 'Password field cannot be empty' })
@@ -17,6 +18,12 @@ export class RegisterDto {
   username: string;
 
   @ApiProperty()
+  @IsNotEmpty({ message: 'Email field cannot be empty' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
   @IsNotEmpty({ message: 'Password field cannot be empty' })
+  @MinLength(8)
   password: string;
 }

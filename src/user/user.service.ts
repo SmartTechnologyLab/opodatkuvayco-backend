@@ -2,8 +2,12 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import { CreateUserDto, UserDto } from './dto/user.dto';
-import { v4 as uuidv4 } from 'uuid';
+import * as bcrypt from 'bcrypt';
+import { CreateUserByProviderDto, CreateUserDto } from './dto/user.dto';
+import { Providers } from './constants/providers';
+import { UserBuilder } from './builder/user';
+import { ChangePasswordDto } from './dto/changePassword.dto';
+import { ChangeUsernameDto } from './dto/changeUsername.dto';
 
 @Injectable()
 export class UserService {
@@ -12,37 +16,122 @@ export class UserService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async register({
+  async register({ email, password, username }: CreateUserDto) {
+    const existingUser = await this.findOne({ email });
+
+    if (existingUser) {
+      throw new UnauthorizedException(`User with ${email} is already exists`);
+    }
+
+    const userBuilder = new UserBuilder();
+
+    const user = userBuilder
+      .setEmail(email)
+      .setPassword(password)
+      .setUsername(username)
+      .setProviders([Providers.Own])
+      .setConfirmationToken()
+      .setId()
+      .build();
+
+    const savedUser = await this.usersRepository.save(user);
+
+    return {
+      ...this.toUserDto(savedUser),
+      confirmationToken: user.confirmationToken,
+    };
+  }
+
+  async registerByProvider({
+    email,
+    provider,
     username,
-    password,
-  }: CreateUserDto): Promise<{ username: string; id: string }> {
-    const user = new User();
-    user.id = uuidv4();
-    user.username = username;
-    user.password = password;
+  }: CreateUserByProviderDto) {
+    const userBuilder = new UserBuilder();
+
+    const user = userBuilder
+      .setEmail(email)
+      .setUsername(username)
+      .setId()
+      .setProviders([provider])
+      .build();
 
     const savedUser = await this.usersRepository.save(user);
 
     return this.toUserDto(savedUser);
   }
 
-  findOne(data: number | any): Promise<User | undefined> {
+  async changePassword({ newPassword, oldPassword, id }: ChangePasswordDto) {
+    try {
+      const user = await this.findOne({ id });
+
+      if (!(await bcrypt.compare(oldPassword, user.password))) {
+        throw new UnauthorizedException('Invalid password');
+      }
+
+      const password = bcrypt.hashSync(newPassword, 10);
+
+      const updatedUser = await this.updateUser(id, { password });
+
+      return updatedUser;
+    } catch (error) {
+      throw new UnauthorizedException('Failed to change password');
+    }
+  }
+
+  async changeUsername({ id, newUsername }: ChangeUsernameDto) {
+    try {
+      const updatedUser = await this.updateUser(id, { username: newUsername });
+
+      return updatedUser;
+    } catch (error) {
+      throw new UnauthorizedException('Failed to change username');
+    }
+  }
+
+  async findOrCreateUserWithProvider(user: User, provider: Providers) {
+    const existingUser = await this.findOne({
+      email: user.email,
+      username: user.username,
+    });
+
+    const userProviders = this.mapProvidersToNumbers(existingUser?.providers);
+
+    if (existingUser && !userProviders.includes(provider)) {
+      await this.usersRepository.update(existingUser.id, {
+        providers: [...existingUser.providers, provider],
+      });
+    }
+
+    return existingUser
+      ? existingUser
+      : await this.registerByProvider({ ...user, provider });
+  }
+
+  findOne(
+    data: Omit<Partial<User>, 'providers' | 'password'>,
+  ): Promise<Partial<User> | undefined> {
     return this.usersRepository.findOne({ where: data });
   }
 
-  async validateUser({ username, password }: UserDto): Promise<User> {
-    const user = await this.findOne({ username });
-
-    if (!user || user.password !== password) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    return user;
+  async findUserByConfimationToken(token: string) {
+    return await this.findOne({ confirmationToken: token });
   }
 
-  toUserDto(user: Omit<User, 'password'>) {
-    const { id, username } = user;
+  async updateUser(userId: string, data: Partial<User>) {
+    await this.usersRepository.update(userId, data);
 
-    return { id, username };
+    return this.findOne({ id: userId });
+  }
+
+  toUserDto(user: Partial<User>) {
+    const { id, username, email, twoFactorAuthentificationEnabled, providers } =
+      user;
+
+    return { id, username, email, twoFactorAuthentificationEnabled, providers };
+  }
+
+  mapProvidersToNumbers(providers: Providers[] | undefined) {
+    return providers?.map(Number) || [];
   }
 }

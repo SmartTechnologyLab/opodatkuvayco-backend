@@ -1,16 +1,24 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Response } from 'express';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/user/entities/user.entity';
 import { jwtConstants } from './constants';
+import { Providers } from 'src/user/constants/providers';
+import { UserRequest } from './types/userRequest';
+import { authenticator } from 'otplib';
+import { toDataURL } from 'qrcode';
+import { Auth2FADto } from './dto/auth2fa.dto';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private jwtService: JwtService,
     private userService: UserService,
+    private mailService: MailService,
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -20,14 +28,18 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (!user.emailConfirmed) {
+      throw new UnauthorizedException('Email not confirmed');
+    }
+
     return {
       user: this.userService.toUserDto(user),
       tokens: this.generateTokens(user),
     };
   }
 
-  async validateUser({ username, password: pass }: LoginDto) {
-    const user = await this.userService.findOne({ username });
+  async validateUser({ email, password: pass }: LoginDto) {
+    const user = await this.userService.findOne({ email });
 
     if (user && (await bcrypt.compare(pass, user.password))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -43,6 +55,11 @@ export class AuthService {
     const newUser = await this.userService.register(registerDto);
 
     if (newUser) {
+      await this.mailService.sendEmailConfirmation(
+        newUser.email,
+        newUser.confirmationToken,
+      );
+
       return newUser;
     }
   }
@@ -51,14 +68,54 @@ export class AuthService {
     return this.jwtService.decode(token);
   }
 
-  generateTokens(user: Omit<User, 'password'>) {
+  // TODO: pass email for jwt sign
+  generateTokens(user: Partial<User>) {
     const accessToken = this.jwtService.sign({
       id: user.id,
-      username: user.username,
+      email: user.email,
     });
 
     const refreshToken = this.jwtService.sign(
-      { id: user.id, username: user.username },
+      { id: user.id, username: user.email },
+      {
+        secret: jwtConstants.refreshSecret,
+        expiresIn: '7d',
+      },
+    );
+
+    return { accessToken, refreshToken };
+  }
+
+  async confirmEmail(token: string) {
+    const user = await this.userService.findUserByConfimationToken(token);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    await this.userService.updateUser(user.id, {
+      confirmationToken: null,
+      emailConfirmed: true,
+    });
+  }
+
+  generateTokensFor2Fa(
+    user: Partial<User>,
+    isTwoFactorAuthenticationEnabled: boolean,
+    isTwoFactorAuthenticated: boolean,
+  ) {
+    const accessToken = this.jwtService.sign({
+      id: user.id,
+      email: user.email,
+      isTwoFactorAuthenticationEnabled,
+      isTwoFactorAuthenticated,
+    });
+
+    const refreshToken = this.jwtService.sign(
+      {
+        id: user.id,
+        username: user.email,
+      },
       {
         secret: jwtConstants.refreshSecret,
         expiresIn: '7d',
@@ -83,6 +140,109 @@ export class AuthService {
       return this.generateTokens(user);
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
+  async googleAuthRedirect(@Req() req: UserRequest, @Res() res: Response) {
+    try {
+      const userProfile = req.user;
+
+      const user = await this.userService.findOrCreateUserWithProvider(
+        userProfile,
+        Providers.Google,
+      );
+
+      const tokens = this.generateTokens(user);
+
+      res.redirect(
+        `${process.env.CLIENT_URL}#accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
+      );
+    } catch (error) {
+      res.redirect(`${process.env.CLIENT_URL}#error=${error.message}`);
+    }
+  }
+
+  async generateTwoFactorAuthSecret(user: User) {
+    const secret = authenticator.generateSecret();
+
+    const otpAuthUrl = authenticator.keyuri(
+      user.email,
+      process.env.APP_NAME,
+      secret,
+    );
+
+    await this.userService.updateUser(user.id, {
+      twoFactorAuthentificationSecret: secret,
+      twoFactorAuthentificationEnabled: true,
+    });
+
+    return otpAuthUrl;
+  }
+
+  async generateQRCodeDataUrl(otpAuthUrl: string) {
+    return toDataURL(otpAuthUrl);
+  }
+
+  isTwoFactorAuthenticationCodeValid(
+    twoFactorAuthenticationCode: string,
+    user: User,
+  ) {
+    return authenticator.verify({
+      token: twoFactorAuthenticationCode,
+      secret: user.twoFactorAuthentificationSecret,
+    });
+  }
+
+  async loginWith2fa(user: Partial<User>) {
+    return {
+      email: user.email,
+      access_token: this.generateTokensFor2Fa(
+        user,
+        !!user.twoFactorAuthentificationEnabled,
+        true,
+      ),
+    };
+  }
+
+  async authenticate2fa(user: User, body: Auth2FADto) {
+    const isCodeValid = this.isTwoFactorAuthenticationCodeValid(
+      body.code,
+      user,
+    );
+
+    if (!isCodeValid) {
+      throw new UnauthorizedException('Wrong authentication code');
+    }
+
+    return this.loginWith2fa(user);
+  }
+
+  async enableTwoFactorAuthentication(user: User) {
+    try {
+      const otpAuthUrl = await this.generateTwoFactorAuthSecret(user);
+
+      const qrCodeDataUrl = await this.generateQRCodeDataUrl(otpAuthUrl);
+
+      return qrCodeDataUrl;
+    } catch {
+      throw new UnauthorizedException(
+        'Failed to enable two-factor authentication',
+      );
+    }
+  }
+
+  async disableTwoFactorAuthentication(user: User) {
+    try {
+      await this.userService.updateUser(user.id, {
+        twoFactorAuthentificationSecret: null,
+        twoFactorAuthentificationEnabled: false,
+      });
+
+      return 'Two-factor authentication disabled';
+    } catch {
+      throw new UnauthorizedException(
+        'Failed to disable two-factor authentication',
+      );
     }
   }
 }

@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Providers } from '../constants/providers';
 
 @Entity()
 export class User {
@@ -17,11 +18,35 @@ export class User {
   id: string;
 
   @ApiProperty()
-  @Column({ unique: true })
+  @Column()
   username: string;
+
+  @ApiProperty()
+  @Column({ unique: true })
+  email: string;
+
+  @ApiProperty({ enum: Providers, enumName: 'Providers' })
+  @Column({
+    type: 'simple-array',
+  })
+  providers: Providers[];
 
   @Column()
   password: string;
+
+  @Column()
+  confirmationToken: string;
+
+  @ApiProperty()
+  @Column({ type: 'boolean' })
+  emailConfirmed: boolean;
+
+  @Column()
+  twoFactorAuthentificationSecret: string;
+
+  @ApiProperty()
+  @Column({ type: 'boolean' })
+  twoFactorAuthentificationEnabled: boolean;
 
   @ApiProperty()
   @CreateDateColumn({ type: 'timestamp' })
