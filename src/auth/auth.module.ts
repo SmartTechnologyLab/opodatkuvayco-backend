@@ -6,7 +6,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy, RefreshTokenStrategy } from './strategies/jwt.strategy';
 import { UserModule } from '../user/user.module';
-import { jwtConstants } from './constants';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
 import { RefreshGuard } from './guards/refresh.guard';
@@ -16,6 +15,7 @@ import { Jwt2faAuthGuard } from './guards/jwt-2fa.guard';
 import { Jwt2faStrategy } from './strategies/jwt-2fa.strategy';
 import { MailModule } from 'src/mail/mail.module';
 import { LocalGuard } from './guards/local.guard';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -23,9 +23,13 @@ import { LocalGuard } from './guards/local.guard';
     PassportModule,
     UserModule,
     MailModule,
-    JwtModule.register({
-      secret: jwtConstants.accessSecret,
-      signOptions: { expiresIn: '15m' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_ACCESS_SECRET'),
+        signOptions: { expiresIn: '15m' },
+      }),
     }),
   ],
   providers: [

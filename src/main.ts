@@ -53,8 +53,8 @@ async function bootstrap() {
     '/docs*',
     basicAuth({
       authorizer: (username: string, password: string) =>
-        username === process.env.SWAGGER_HTTP_BASIC_AUTH_USERNAME &&
-        password === process.env.SWAGGER_HTTP_BASIC_AUTH_PASSWORD,
+        username === configService.get('SWAGGER_HTTP_BASIC_AUTH_USERNAME') &&
+        password === configService.get('SWAGGER_HTTP_BASIC_AUTH_PASSWORD'),
       challenge: true,
     }),
   );
