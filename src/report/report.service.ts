@@ -15,6 +15,8 @@ import { Report as ReportEntity } from 'src/report/entities/report.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
+import { FileTypeEnum } from 'src/reportReader/consts';
+import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
 
 @Injectable()
 export class ReportService {
@@ -312,6 +314,20 @@ export class ReportService {
     const report = await this.saveReport(result, user);
 
     return report;
+  }
+
+  async test(files: any) {
+    const stockExchangeReport = this.reportReaderService.readReport(
+      files.at(0),
+      FileTypeEnum.JSON,
+    );
+
+    const { trades } = this.normalizeReportsService.getReportByStockExchange(
+      stockExchangeReport,
+      StockExchangeEnum.FREEDOM_FINANCE,
+    );
+
+    return this.dealsService.groupTradesByTicker(trades);
   }
 
   private async handleMultipleReports({
