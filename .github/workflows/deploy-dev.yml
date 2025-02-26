@@ -37,6 +37,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -44,10 +45,16 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
+      
       - name: Install dependencies
         run: npm ci
+      
+      - name: Debug environment variables
+        run: env | grep GOOGLE_AUTH
+      
       - name: Build Project
         run: npm run build
+      
       - name: Deploy
         uses: burnett01/rsync-deployments@5.2.1
         with:
@@ -57,3 +64,4 @@ jobs:
           remote_user: ${{ secrets.REMOTE_USER }}
           remote_key: ${{ secrets.REMOTE_KEY }}
           remote_path: ${{ secrets.REMOTE_PATH }}
+
