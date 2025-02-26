@@ -50,7 +50,7 @@ jobs:
         run: npm ci
       
       - name: Debug environment variables
-        run: env | grep GOOGLE_AUTH
+        run: env | grep GOOGLE_AUTH_CLIENT_ID
       
       - name: Build Project
         run: npm run build
