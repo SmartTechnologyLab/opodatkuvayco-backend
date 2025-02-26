@@ -21,6 +21,14 @@ export interface FreedomFinanceTrade {
   curr_c: string;
 }
 
+export interface FreedomFinancePosition {
+  i: string;
+  q: number;
+  s: number;
+  curr: string;
+  price_a: number;
+}
+
 export interface FreedomFinanceReport {
   date_start: string;
   corporate_actions: {
@@ -28,5 +36,25 @@ export interface FreedomFinanceReport {
   };
   trades: {
     detailed: FreedomFinanceTrade[];
+  };
+  account_at_start: {
+    date: string;
+    account: {
+      positions_from_ts: {
+        ps: {
+          pos: FreedomFinancePosition[];
+        };
+      };
+    };
+  };
+  account_at_end: {
+    date: string;
+    account: {
+      positions_from_ts: {
+        ps: {
+          pos: FreedomFinancePosition[];
+        };
+      };
+    };
   };
 }

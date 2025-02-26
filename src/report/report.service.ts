@@ -4,7 +4,7 @@ import { sortByDate } from './helpers';
 import { NormalizeReportsService } from '../normalizeReports/normalizeReports.service';
 import { ReportReaderService } from 'src/reportReader/reportReader.service';
 import { FileType } from 'src/reportReader/types';
-import { Trade } from './types/interfaces/trade.interface';
+import { GroupedTrades, Trade } from './types/interfaces/trade.interface';
 import { DealReport } from './types/interfaces/deal-report.interface';
 import { Deal } from './types/interfaces/deal.interface';
 import { Report } from './types/interfaces/report.interface';
@@ -15,8 +15,9 @@ import { Report as ReportEntity } from 'src/report/entities/report.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
-import { FileTypeEnum } from 'src/reportReader/consts';
 import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
+import { TradeService } from 'src/trade/trade.service';
+import { mergeDeepWith, concat } from 'ramda';
 
 @Injectable()
 export class ReportService {
@@ -316,18 +317,110 @@ export class ReportService {
     return report;
   }
 
-  async test(files: any) {
-    const stockExchangeReport = this.reportReaderService.readReport(
-      files.at(0),
-      FileTypeEnum.JSON,
-    );
+  getTradesBySingleFile(files: Express.Multer.File[]) {
+    const { trades, accountAtStart, accountAtEnd, dateStart } =
+      this.normalizeReportsService.getReportByStockExchange(
+        files.at(0),
+        StockExchangeEnum.FREEDOM_FINANCE,
+      );
 
-    const { trades } = this.normalizeReportsService.getReportByStockExchange(
-      stockExchangeReport,
-      StockExchangeEnum.FREEDOM_FINANCE,
-    );
+    const groupedTrades = this.dealsService.groupTradesByTicker(trades);
 
-    return this.dealsService.groupTradesByTicker(trades);
+    return { groupedTrades, accountAtStart, accountAtEnd, dateStart };
+  }
+
+  sortDeals(deals: Deal[]) {
+    return deals.sort((a, b) => a.ticker.localeCompare(b.ticker));
+  }
+
+  getTotalValue(deals: Deal[]) {
+    return deals.reduce((acc, deal) => acc + deal.total, 0);
+  }
+
+  getSummary(deals: Deal[]) {
+    const total = this.getTotalValue(deals);
+
+    return {
+      total,
+      totalTaxFee: this.getTotalTaxFee(total),
+      totalMilitaryFee: this.getMilitaryFee(total),
+      deals: this.sortDeals(deals),
+    };
+  }
+
+  async proccessSingleFileReport(files: Express.Multer.File[]) {
+    const { groupedTrades } = this.getTradesBySingleFile(files);
+
+    const tradeService = new TradeService(this.dealsService, {
+      trades: groupedTrades,
+    });
+
+    const deals = await tradeService.getDeals();
+
+    return this.getSummary(deals);
+  }
+
+  getTradesFromPreviousPeriod(
+    files: Express.Multer.File[],
+    leftOvers?: Record<string, number>,
+  ) {
+    const { groupedTrades, accountAtEnd } = this.getTradesBySingleFile(files);
+
+    const tradeService = new TradeService(this.dealsService, {
+      trades: groupedTrades,
+      leftOvers: accountAtEnd,
+    });
+
+    const trades = tradeService.getTradesFromPreviousPeriod();
+
+    console.log(trades, leftOvers ? leftOvers : accountAtEnd);
+
+    return { trades, leftOvers: tradeService.getLefovers() };
+  }
+
+  async processMultipleFiles(files: Express.Multer.File[]) {
+    const [, ...restFiles] = files;
+
+    // const prevTrades = restFiles.reduce(
+    //   (acc, file, index) => {
+    //     if (index === 0) {
+    //       const prevTradesResult = this.getTradesFromPreviousPeriod([file]);
+    //       return prevTradesResult;
+    //     } else {
+    //       const { trades, leftOvers } = this.getTradesFromPreviousPeriod(
+    //         [file],
+    //         acc.leftOvers,
+    //       );
+
+    //       const mergedTrades = mergeDeepWith(concat, trades, acc.trades);
+
+    //       return {
+    //         trades: mergedTrades,
+    //         leftOvers,
+    //       };
+    //     }
+    //   },
+    //   {} as {
+    //     leftOvers: Record<string, number>;
+    //     trades: GroupedTrades;
+    //   },
+    // );
+
+    const prevTrades = this.getTradesFromPreviousPeriod(restFiles);
+    // const prevGroupedTrades = this
+
+    const { groupedTrades, accountAtEnd } = this.getTradesBySingleFile(files);
+
+    const trades = mergeDeepWith(concat, prevTrades.trades, groupedTrades);
+
+    const tradeService = new TradeService(this.dealsService, {
+      trades,
+      leftOvers: accountAtEnd,
+    });
+
+    const deals = await tradeService.getDeals();
+
+    return this.getSummary(deals);
   }
 
   private async handleMultipleReports({

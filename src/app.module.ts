@@ -16,6 +16,7 @@ import { DateFormatModule } from './dateTimeFormat/dateFormat.module';
 import { Deal, Trade } from './deals/entities/deals.entity';
 import { Report } from './report/entities/report.entity';
 import { MailModule } from './mail/mail.module';
+import { TradeModule } from './trade/trade.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { MailModule } from './mail/mail.module';
       inject: [ConfigService],
     }),
     ReportModule,
+    TradeModule,
     CurrencyRateModule,
     NormalizeTradesModule,
     NormalizeReportsModule,
