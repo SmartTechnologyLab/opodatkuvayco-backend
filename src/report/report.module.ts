@@ -14,6 +14,7 @@ import { DateTimeFormatService } from 'src/dateTimeFormat/dateFormat.service';
 import { DealsModule } from 'src/deals/deals.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Report } from './entities/report.entity';
+import { TradeModule } from 'src/trade/trade.module';
 
 @Module({
   imports: [
@@ -24,6 +25,8 @@ import { Report } from './entities/report.entity';
     ReportReaderModule,
     DateFormatModule,
     DealsModule,
+    ReportModule,
+    TradeModule,
   ],
   exports: [TypeOrmModule],
   controllers: [ReportController],
