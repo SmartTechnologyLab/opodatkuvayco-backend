@@ -1,21 +1,10 @@
 import { FileType } from 'src/reportReader/types';
-import { ReportType } from '../types/types/report.type';
 import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
 import { IsEnum, IsNotEmpty } from 'class-validator';
-import { ReportTypeEnum } from '../consts/enums';
 import { FileTypeEnum } from 'src/reportReader/consts';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ReportDealsDto {
-  @ApiProperty({
-    enum: ReportTypeEnum,
-    enumName: 'ReportTypeEnum',
-    description: 'Type of the report',
-  })
-  @IsEnum(ReportTypeEnum)
-  @IsNotEmpty({ message: 'Report type query param is required' })
-  reportType: ReportType;
-
   @ApiProperty({
     enum: FileTypeEnum,
     enumName: 'FileTypeEnum',

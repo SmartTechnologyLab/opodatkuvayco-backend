@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { NormalizeReportsService } from '../normalizeReports/normalizeReports.service';
-import { GroupedTrades, Trade } from './types/interfaces/trade.interface';
+import { GroupedTrades } from './types/interfaces/trade.interface';
 import { DealReport } from './types/interfaces/deal-report.interface';
 import { Deal } from './types/interfaces/deal.interface';
-import { AccounAtStartType } from './types/interfaces/report.interface';
+import { ReportFromPreviousPeriod } from './types/interfaces/report.interface';
 import { MILITARY_FEE, TAX_FEE } from './consts/tax-fee-percentages';
 import { DealsService } from '../deals/deals.service';
 import { Report as ReportEntity } from 'src/report/entities/report.entity';
@@ -12,7 +12,7 @@ import { Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
 import { TradeService } from 'src/trade/trade.service';
-import { mergeDeepWith, concat } from 'ramda';
+import { mergeDeepWith, concat, pipe, map, sort } from 'ramda';
 
 @Injectable()
 export class ReportService {
@@ -44,11 +44,11 @@ export class ReportService {
     }
   }
 
-  getTradesReport(file: Express.Multer.File) {
+  getTradesReport(file: Express.Multer.File, stockExchange: StockExchangeEnum) {
     const { trades, accountAtStart, accountAtEnd, dateStart } =
       this.normalizeReportsService.getReportByStockExchange(
         file,
-        StockExchangeEnum.FREEDOM_FINANCE,
+        stockExchange,
       );
 
     const groupedTrades = this.dealsService.groupTradesByTicker(trades);
@@ -56,22 +56,27 @@ export class ReportService {
     return { groupedTrades, accountAtStart, accountAtEnd, dateStart };
   }
 
-  getTradesByMultipleFiles(files: Express.Multer.File[]) {
-    return files
-      .map((file) => {
+  getTradesByMultipleFiles(
+    files: Express.Multer.File[],
+    stockExchange: StockExchangeEnum,
+  ) {
+    return pipe(
+      map((file: Express.Multer.File) => {
         const { groupedTrades, accountAtStart, accountAtEnd, dateStart } =
-          this.getTradesReport(file);
+          this.getTradesReport(file, stockExchange);
 
         return { groupedTrades, accountAtStart, accountAtEnd, dateStart };
-      })
-      .sort(
-        (a, b) =>
-          new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime(),
-      );
+      }),
+      sort(
+        (report1, report2) =>
+          new Date(report2.dateStart).getTime() -
+          new Date(report1.dateStart).getTime(),
+      ),
+    )(files);
   }
 
   sortDeals(deals: Deal[]) {
-    return deals.sort((a, b) => a.ticker.localeCompare(b.ticker));
+    return sort((a, b) => a.ticker.localeCompare(b.ticker), deals);
   }
 
   getTotalValue(deals: Deal[]) {
@@ -104,12 +109,7 @@ export class ReportService {
   }
 
   processTradesFromPreviousPeriod(
-    tradeReports: {
-      groupedTrades: Record<string, Trade[]>;
-      accountAtStart: AccounAtStartType;
-      accountAtEnd: AccounAtStartType;
-      dateStart: string;
-    }[],
+    tradeReports: ReportFromPreviousPeriod[],
     baseLeftOvers: Record<string, number>,
   ): { trades: GroupedTrades; leftOvers: Record<string, number> } {
     return tradeReports.reduce(
@@ -141,8 +141,19 @@ export class ReportService {
     );
   }
 
-  async processMultipleFiles(files: Express.Multer.File[], user: User) {
-    const [firstReport, ...restReports] = this.getTradesByMultipleFiles(files);
+  async processMultipleFiles({
+    files,
+    user,
+    stockExchange,
+  }: {
+    files: Express.Multer.File[];
+    user: User;
+    stockExchange: StockExchangeEnum;
+  }) {
+    const [firstReport, ...restReports] = this.getTradesByMultipleFiles(
+      files,
+      stockExchange,
+    );
 
     const tradeService = new TradeService(this.dealsService, {
       trades: firstReport.groupedTrades,
