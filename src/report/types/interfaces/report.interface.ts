@@ -1,3 +1,5 @@
+import { GroupedTrades } from './trade.interface';
+
 interface AccounAtStart {
   ticker: string;
   quantity: number;
@@ -14,3 +16,7 @@ export interface Report<T> {
   accountAtStart?: AccounAtStartType;
   accountAtEnd?: AccounAtStartType;
 }
+
+export type ReportFromPreviousPeriod = Omit<Report<object>, 'trades'> & {
+  groupedTrades: GroupedTrades;
+};
