@@ -12,7 +12,7 @@ export class TradeService {
   private leftOvers: AccounAtStartType | null = null;
   private buyQueue: GroupedTrades | null = null;
   private trades: GroupedTrades | null = null;
-  private shortPositions: Record<string, Trade[]> | null = {};
+  private shortPositions: GroupedTrades | null = {};
 
   constructor(
     private dealService: DealsService,
