@@ -31,10 +31,10 @@ export class ReportReaderService {
   }
 
   private parseJSON(file: Express.Multer.File) {
-    // try {
-    return JSON.parse(file.buffer.toString('utf-8'));
-    // } catch (error) {
-    //   throw new Error('Error parsing json');
-    // }
+    try {
+      return JSON.parse(file.buffer.toString('utf-8'));
+    } catch (error) {
+      throw new Error('Error parsing json');
+    }
   }
 }
