@@ -49,12 +49,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Debug environment variables
-        run: env | grep GOOGLE_AUTH_CLIENT_ID
-      
       - name: Build Project
         run: npm run build
-      
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CLIENT_URL: ${{ vars.CLIENT_URL }}
+          JWT_ACCESS_SECRET: ${{ vars.JWT_ACCESS_SECRET }}
+          JWT_REFRESH_SECRET: ${{ vars.JWT_REFRESH_SECRET }}
+          SWAGGER_HTTP_BASIC_AUTH_USERNAME: ${{ vars.SWAGGER_HTTP_BASIC_AUTH_USERNAME }}
+          SWAGGER_HTTP_BASIC_AUTH_PASSWORD: ${{ vars.SWAGGER_HTTP_BASIC_AUTH_PASSWORD }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_USER: ${{ vars.SMTP_USER }}
+          SMTP_EMAIL_PASSWORD: ${{ vars.SMTP_EMAIL_PASSWORD }}
+          GOOGLE_AUTH_CLIENT_ID: ${{ vars.GOOGLE_AUTH_CLIENT_ID }}
+          GOOGLE_AUTH_CLIENT_SECRET: ${{ vars.GOOGLE_AUTH_CLIENT_SECRET }}
+          GOOGLE_AUTH_REDIRECT_URL: ${{ vars.GOOGLE_AUTH_REDIRECT_URL }}
+          NBU_API_URL: ${{ vars.NBU_API_URL }}
+          PORT: ${{ vars.PORT }}
+          HOST: ${{ vars.HOST }}
       - name: Deploy
         uses: burnett01/rsync-deployments@5.2.1
         with:
