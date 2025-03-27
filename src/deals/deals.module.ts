@@ -8,7 +8,7 @@ import { DealsController } from './deals.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Deal, Trade])],
-  exports: [DealsService, TypeOrmModule],
+  exports: [DealsService],
   controllers: [DealsController],
   providers: [DealsService, CurrencyRateService, DateTimeFormatService],
 })
