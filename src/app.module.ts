@@ -17,6 +17,7 @@ import { CurrencyRateModule } from './currencyExchange/currencyRate.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

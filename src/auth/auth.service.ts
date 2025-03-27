@@ -5,17 +5,18 @@ import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/user/entities/user.entity';
-import { jwtConstants } from './constants';
 import { Providers } from 'src/user/constants/providers';
 import { UserRequest } from './types/userRequest';
 import { authenticator } from 'otplib';
 import { toDataURL } from 'qrcode';
 import { Auth2FADto } from './dto/auth2fa.dto';
 import { MailService } from 'src/mail/mail.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private configService: ConfigService,
     private jwtService: JwtService,
     private userService: UserService,
     private mailService: MailService,
@@ -78,7 +79,7 @@ export class AuthService {
     const refreshToken = this.jwtService.sign(
       { id: user.id, username: user.email },
       {
-        secret: jwtConstants.refreshSecret,
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
         expiresIn: '7d',
       },
     );
@@ -117,7 +118,7 @@ export class AuthService {
         username: user.email,
       },
       {
-        secret: jwtConstants.refreshSecret,
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
         expiresIn: '7d',
       },
     );
@@ -128,7 +129,7 @@ export class AuthService {
   async refreshToken(refreshToken: string) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
-        secret: jwtConstants.refreshSecret,
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
       });
 
       const user = await this.userService.findOne({ id: payload.id });
