@@ -4,7 +4,7 @@ import { FreedomFinanceReport } from './types/interfaces/freedomFinance.interfac
 import { IbkrReport } from './types/interfaces/ibkr.interface';
 import { Report } from 'src/report/types/interfaces/report.interface';
 import { Trade } from 'src/report/types/interfaces/trade.interface';
-import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
+import { StockExchangeEnum } from 'src/report/normalizeTrades/constants/enums';
 import { StockExchangeType } from './types/types/stock-exchange.type';
 
 @Injectable()
