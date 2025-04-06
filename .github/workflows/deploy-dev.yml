@@ -34,9 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     env:
-      GOOGLE_AUTH_CLIENT_ID: ${{var.GOOGLE_AUTH_CLIENT_ID}}
-      GOOGLE_AUTH_CLIENT_SECRET: ${{var.GOOGLE_AUTH_CLIENT_SECRET}}
-      GOOGLE_AUTH_REDIRECT_URL: ${{var.GOOGLE_AUTH_REDIRECT_URL}}
+      GOOGLE_AUTH_CLIENT_ID: ${{vars.GOOGLE_AUTH_CLIENT_ID}}
+      GOOGLE_AUTH_CLIENT_SECRET: ${{vars.GOOGLE_AUTH_CLIENT_SECRET}}
+      GOOGLE_AUTH_REDIRECT_URL: ${{vars.GOOGLE_AUTH_REDIRECT_URL}}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
