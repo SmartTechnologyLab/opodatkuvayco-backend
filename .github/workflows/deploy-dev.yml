@@ -34,9 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     env:
-      GOOGLE_AUTH_CLIENT_ID: ${{vars.GOOGLE_AUTH_CLIENT_ID}}
-      GOOGLE_AUTH_CLIENT_SECRET: ${{vars.GOOGLE_AUTH_CLIENT_SECRET}}
-      GOOGLE_AUTH_REDIRECT_URL: ${{vars.GOOGLE_AUTH_REDIRECT_URL}}
+      GOOGLE_AUTH_CLIENT_ID: ${{secrets.GOOGLE_AUTH_CLIENT_ID}}
+      GOOGLE_AUTH_CLIENT_SECRET: ${{secrets.GOOGLE_AUTH_CLIENT_SECRET}}
+      GOOGLE_AUTH_REDIRECT_URL: ${{secrets.GOOGLE_AUTH_REDIRECT_URL}}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,7 +60,7 @@ jobs:
         with:
           switches: -avzr --delete
           path: .
-          remote_host: ${{ secrets.REMOTE_HOST }}
-          remote_user: ${{ secrets.REMOTE_USER }}
-          remote_key: ${{ secrets.REMOTE_KEY }}
+          remote_host: ${{ secrets.DEV_REMOTE_HOST }}
+          remote_user: ${{ secrets.DEV_REMOTE_USER }}
+          remote_key: ${{ secrets.DEV_REMOTE_KEY }}
           remote_path: ${{ secrets.PROD_REMOTE_PATH }}
