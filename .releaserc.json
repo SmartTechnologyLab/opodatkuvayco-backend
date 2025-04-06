@@ -1,0 +1,15 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    ["@semantic-release/npm"],
+    [
+      "@semantic-release/github",
+      {
+        "successComment": "This ${issue.pull_request ? 'pull request' : 'issue'} is included in version ${nextRelease.version} :tada:",
+        "releasedLabels": ["v${nextRelease.version}"]
+      }
+    ],
+    ["@semantic-release/commit-analyzer"],
+    ["@semantic-release/release-notes-generator"]
+  ]
+}
