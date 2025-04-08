@@ -73,7 +73,7 @@ jobs:
           remote_host: ${{ secrets.DEV_REMOTE_HOST }}
           remote_user: ${{ secrets.DEV_REMOTE_USER }}
           remote_key: ${{ secrets.DEV_REMOTE_KEY }}
-          remote_path: ${{ secrets.DEV_REMOTE_PATH }}
+          remote_path: ${{ secrets.PROD_REMOTE_PATH }}
 
   release:
     needs: [deploy]
