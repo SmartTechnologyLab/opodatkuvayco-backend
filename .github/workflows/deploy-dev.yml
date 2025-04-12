@@ -78,7 +78,7 @@ jobs:
         uses: burnett01/rsync-deployments@5.2.1
         with:
           switches: -avz
-          path: ./package*.json ./dist/  ./node_modules ./.env
+          path: ./package*.json ./dist  ./node_modules ./.env
           remote_host: ${{ secrets.DEV_REMOTE_HOST }}
           remote_user: ${{ secrets.DEV_REMOTE_USER }}
           remote_key: ${{ secrets.DEV_REMOTE_KEY }}
