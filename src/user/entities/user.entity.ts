@@ -10,6 +10,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Providers } from '../constants/providers';
+import { IsEmail, IsNotEmpty } from 'class-validator';
 
 @Entity()
 export class User {
@@ -21,6 +22,8 @@ export class User {
   @Column()
   username: string;
 
+  @IsEmail()
+  @IsNotEmpty()
   @ApiProperty()
   @Column({ unique: true })
   email: string;
