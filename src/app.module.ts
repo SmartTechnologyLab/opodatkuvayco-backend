@@ -1,8 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AppService } from './app.service';
-import { ReportModule } from './report/report.module';
-import { NormalizeTradesModule } from './normalizeTrades/normalizeTrades.module';
-import { NormalizeReportsModule } from './normalizeReports/normalizeReports.module';
 import { HealthController } from './health/health.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -11,11 +8,10 @@ import { User } from './user/entities/user.entity';
 import { UserModule } from './user/user.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthInterceptor } from './interceptor/auth.interceptor';
-import { CurrencyRateModule } from './currencyExchange/currencyRate.module';
-import { DateFormatModule } from './dateTimeFormat/dateFormat.module';
 import { Deal, Trade } from './deals/entities/deals.entity';
 import { Report } from './report/entities/report.entity';
-import { MailModule } from './mail/mail.module';
+import { ReportModule } from './report/report.module';
+import { CurrencyRateModule } from './currencyExchange/currencyRate.module';
 
 @Module({
   imports: [
@@ -39,12 +35,8 @@ import { MailModule } from './mail/mail.module';
     }),
     ReportModule,
     CurrencyRateModule,
-    NormalizeTradesModule,
-    NormalizeReportsModule,
     AuthModule,
     UserModule,
-    DateFormatModule,
-    MailModule,
   ],
   controllers: [HealthController],
   providers: [
