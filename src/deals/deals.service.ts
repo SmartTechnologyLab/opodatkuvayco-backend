@@ -5,7 +5,7 @@ import { DealOptions } from 'src/report/types/interfaces/deal-options.interface'
 import { Deal } from 'src/report/types/interfaces/deal.interface';
 import { Trade } from 'src/report/types/interfaces/trade.interface';
 import { v4 as uuid } from 'uuid';
-import { groupBy } from 'ramda';
+import { clone, groupBy } from 'ramda';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Deal as DealEntity,
@@ -98,18 +98,26 @@ export class DealsService {
       sellTrade,
     );
 
+    const quantityToProcess = Math.min(
+      purchaseTrade.quantity,
+      sellTrade.quantity,
+    );
+
     const deal = this.generateDeal({
       ticker: purchaseTrade.ticker,
       purchaseCommission: purchaseTrade.commission,
       purchaseDate: new Date(purchaseTrade.date),
       purchasePrice: purchaseTrade.price,
       purchaseRate,
-      quantity: sellTrade.quantity,
-      saleCommission: commission,
+      quantity: quantityToProcess,
+      saleCommission: commission * purchaseTrade.quantity,
       saleDate: new Date(sellTrade.date),
       salePrice: sellTrade.price,
       saleRate,
     });
+
+    sellTrade.quantity -= quantityToProcess;
+    purchaseTrade.quantity -= quantityToProcess;
 
     return deal;
   }
@@ -124,7 +132,7 @@ export class DealsService {
   }
 
   groupTradesByTicker(trades: Trade[]): Record<Trade['ticker'], Trade[]> {
-    const tradesCopy = structuredClone(trades);
+    const tradesCopy = clone(trades);
 
     return groupBy((deal: Trade) => {
       const ticker = deal.ticker.split('.').at(0);

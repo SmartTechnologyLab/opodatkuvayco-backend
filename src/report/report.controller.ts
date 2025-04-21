@@ -18,19 +18,15 @@ import { Deal } from './types/interfaces/deal.interface';
 import { DealReport } from './types/interfaces/deal-report.interface';
 import { ReportDealsDto } from './dto/report-deals.dto';
 import { Report } from './entities/report.entity';
-// import { TradeService } from './trade.service';
+import { DealService } from './trade.service';
 import { DealsService } from 'src/deals/deals.service';
-import { NormalizeReportsService } from 'src/normalizeReports/normalizeReports.service';
-import { ReportReaderService } from 'src/reportReader/reportReader.service';
 
 @ApiTags('Report')
 @Controller('report')
 export class ReportController {
   constructor(
     private reportService: ReportService,
-    private normalizeReportService: NormalizeReportsService,
     private dealsService: DealsService,
-    private reportReaderService: ReportReaderService,
   ) {}
 
   @UseGuards(JwtGuard)
@@ -104,31 +100,12 @@ export class ReportController {
   @UseInterceptors(FilesInterceptor('file', 10))
   @UsePipes(new ValidationPipe({ transform: true }))
   async test(@UploadedFiles() files: Express.Multer.File[]) {
-    return await this.reportService.proccessSingleFileReport(files);
-  }
+    const groupedTrades = await this.reportService.test(files);
 
-  @Post('Test-2')
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FilesInterceptor('files', 10))
-  @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiBody({
-    description: 'Upload multiple JSON files containing trades report',
-    required: true,
-    schema: {
-      type: 'object',
-      properties: {
-        files: {
-          type: 'array',
-          items: {
-            type: 'string',
-            format: 'binary',
-          },
-          description: 'Array of JSON files containing trades report',
-        },
-      },
-    },
-  })
-  async processMultipleFiles(@UploadedFiles() files: Express.Multer.File[]) {
-    return await this.reportService.processMultipleFiles(files);
+    const dealService = new DealService(this.dealsService, groupedTrades);
+
+    await dealService.processTrades();
+
+    return dealService.deals;
   }
 }

@@ -6,15 +6,10 @@ import { Report } from 'src/report/types/interfaces/report.interface';
 import { Trade } from 'src/report/types/interfaces/trade.interface';
 import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
 import { StockExchangeType } from './types/types/stock-exchange.type';
-import { ReportReaderService } from 'src/reportReader/reportReader.service';
-import { FileTypeEnum } from 'src/reportReader/consts';
 
 @Injectable()
 export class NormalizeReportsService {
-  constructor(
-    private normalizeTradeService: NormalizeTradesService,
-    private reportReaderService: ReportReaderService,
-  ) {}
+  constructor(private normalizeTradeService: NormalizeTradesService) {}
 
   private MAP_STOCK_EXCHANGE_TO_REPORT_TYPE = {
     [StockExchangeEnum.FREEDOM_FINANCE]:
@@ -26,13 +21,7 @@ export class NormalizeReportsService {
     report: any,
     stockExchange: StockExchangeType,
   ): Report<Trade> {
-    // TODO: add file param type
-    const readedReport = this.reportReaderService.readReport(
-      report,
-      FileTypeEnum.JSON,
-    );
-
-    return this.MAP_STOCK_EXCHANGE_TO_REPORT_TYPE[stockExchange](readedReport);
+    return this.MAP_STOCK_EXCHANGE_TO_REPORT_TYPE[stockExchange](report);
   }
 
   private normalizeFreedomFinanceReport(
@@ -43,16 +32,6 @@ export class NormalizeReportsService {
       trades: this.normalizeTradeService.getNormalizedTrades(
         StockExchangeEnum.FREEDOM_FINANCE,
         report.trades.detailed,
-      ),
-      accountAtStart: Object.fromEntries(
-        report.account_at_start.account.positions_from_ts?.ps.pos.map(
-          (position) => [position.i.split('.').at(0), position.q],
-        ),
-      ),
-      accountAtEnd: Object.fromEntries(
-        report.account_at_end.account.positions_from_ts.ps.pos.map(
-          (position) => [position.i.split('.').at(0), position.q],
-        ),
       ),
     };
   }
