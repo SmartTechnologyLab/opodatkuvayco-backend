@@ -124,11 +124,13 @@ export class DealsService {
   }
 
   groupTradesByTicker(trades: Trade[]): Record<Trade['ticker'], Trade[]> {
+    const tradesCopy = structuredClone(trades);
+
     return groupBy((deal: Trade) => {
       const ticker = deal.ticker.split('.').at(0);
 
       return ticker;
-    }, trades);
+    }, tradesCopy);
   }
 
   async saveDeals(deals: Deal[], user: User): Promise<DealEntity[]> {
