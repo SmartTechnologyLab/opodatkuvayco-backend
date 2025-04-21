@@ -1,4 +1,4 @@
-import { StockExchangeEnum } from 'src/report/normalizeTrades/constants/enums';
+import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
 
 export type StockExchange =
   | StockExchangeEnum.FREEDOM_FINANCE
