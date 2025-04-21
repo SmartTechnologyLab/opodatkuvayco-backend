@@ -1,9 +1,8 @@
 import {
-  BadRequestException,
   Controller,
   Get,
   Post,
-  Req,
+  Query,
   Request,
   UploadedFiles,
   UseGuards,
@@ -15,46 +14,102 @@ import { ReportService } from './report.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtGuard } from '../auth/guards/jwt.quard';
+import { Deal } from './types/interfaces/deal.interface';
+import { DealReport } from './types/interfaces/deal-report.interface';
+import { ReportDealsDto } from './dto/report-deals.dto';
 import { Report } from './entities/report.entity';
-import { UserRequest } from 'src/auth/types/userRequest';
+// import { TradeService } from './trade.service';
+import { DealsService } from 'src/deals/deals.service';
+import { NormalizeReportsService } from 'src/normalizeReports/normalizeReports.service';
+import { ReportReaderService } from 'src/reportReader/reportReader.service';
 
 @ApiTags('Report')
 @Controller('report')
 export class ReportController {
-  constructor(private reportService: ReportService) {}
+  constructor(
+    private reportService: ReportService,
+    private normalizeReportService: NormalizeReportsService,
+    private dealsService: DealsService,
+    private reportReaderService: ReportReaderService,
+  ) {}
 
   @UseGuards(JwtGuard)
-  @Get('get-reports')
+  @Get('GetReports')
   @ApiResponse({
     status: 200,
     type: [Report],
   })
-  getRepots(@Request() req: UserRequest): Promise<Report[]> {
+  getRepots(@Request() req: any): Promise<Report[]> {
     return this.reportService.getReports(req.user.id);
   }
 
-  // @UseGuards(JwtGuard)
-  @Post('create-report')
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FilesInterceptor('files', 10, {
-      fileFilter: (req, file, callback) => {
-        if (
-          file.mimetype === 'application/json' ||
-          file.mimetype === 'application/xml'
-        ) {
-          callback(null, true);
-        } else {
-          callback(
-            new BadRequestException(
-              `Invalid file type: ${file.mimetype}. Only JSON and XML files are allowed.`,
-            ),
-            false,
-          );
-        }
+  @Post('CreateReport')
+  @UseInterceptors(FilesInterceptor('file', 10))
+  @ApiBody({
+    description: 'Loading trades report in JSON format for getting deals',
+    required: true,
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'JSON file containing trades report',
+        },
       },
-    }),
-  )
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    type: [Report],
+  })
+  @UseGuards(JwtGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async getReport(
+    @Query() reportDealsDto: ReportDealsDto,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req: any,
+  ): Promise<DealReport<Deal>> {
+    try {
+      const { reportType, fileType, stockExchange } = reportDealsDto;
+
+      return this.reportService.handleReports({
+        files,
+        reportType,
+        stockExchange,
+        fileType,
+        user: req.user,
+      });
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
+  @Post('Test')
+  @ApiBody({
+    description: 'Loading trades report in JSON format for getting deals',
+    required: true,
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'JSON file containing trades report',
+        },
+      },
+    },
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('file', 10))
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async test(@UploadedFiles() files: Express.Multer.File[]) {
+    return await this.reportService.proccessSingleFileReport(files);
+  }
+
+  @Post('Test-2')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('files', 10))
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiBody({
     description: 'Upload multiple JSON files containing trades report',
@@ -73,10 +128,7 @@ export class ReportController {
       },
     },
   })
-  async processMultipleFiles(
-    @UploadedFiles() files: Express.Multer.File[],
-    @Req() req: UserRequest,
-  ) {
-    return await this.reportService.processMultipleFiles(files, req.user);
+  async processMultipleFiles(@UploadedFiles() files: Express.Multer.File[]) {
+    return await this.reportService.processMultipleFiles(files);
   }
 }
