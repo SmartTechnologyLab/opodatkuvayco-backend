@@ -33,7 +33,7 @@ export class ReportController {
     return this.reportService.getReports(req.user.id);
   }
 
-  @UseGuards(JwtGuard)
+  // @UseGuards(JwtGuard)
   @Post('create-report')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
