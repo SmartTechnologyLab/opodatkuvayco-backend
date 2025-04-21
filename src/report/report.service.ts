@@ -3,10 +3,7 @@ import { NormalizeReportsService } from '../normalizeReports/normalizeReports.se
 import { GroupedTrades } from './types/interfaces/trade.interface';
 import { DealReport } from './types/interfaces/deal-report.interface';
 import { Deal } from './types/interfaces/deal.interface';
-import {
-  AccounAtStartType,
-  ReportFromPreviousPeriod,
-} from './types/interfaces/report.interface';
+import { ReportFromPreviousPeriod } from './types/interfaces/report.interface';
 import { MILITARY_FEE, TAX_FEE } from './consts/tax-fee-percentages';
 import { DealsService } from '../deals/deals.service';
 import { Report as ReportEntity } from 'src/report/entities/report.entity';
@@ -99,7 +96,7 @@ export class ReportService {
 
   getTradesFromPreviousPeriod(
     groupedTrades: GroupedTrades,
-    leftOvers?: AccounAtStartType,
+    leftOvers?: Record<string, number>,
   ) {
     const tradeService = new TradeService(this.dealsService, {
       trades: groupedTrades,
@@ -113,8 +110,8 @@ export class ReportService {
 
   processTradesFromPreviousPeriod(
     tradeReports: ReportFromPreviousPeriod[],
-    baseLeftOvers: AccounAtStartType,
-  ) {
+    baseLeftOvers: Record<string, number>,
+  ): { trades: GroupedTrades; leftOvers: Record<string, number> } {
     return tradeReports.reduce(
       (acc, { groupedTrades }, index) => {
         if (index === 0) {
@@ -138,7 +135,7 @@ export class ReportService {
         }
       },
       {} as {
-        leftOvers: AccounAtStartType;
+        leftOvers: Record<string, number>;
         trades: GroupedTrades;
       },
     );
@@ -185,7 +182,7 @@ export class ReportService {
     return report;
   }
 
-  async getReports(userId: User['id']): Promise<ReportEntity[]> {
+  async getReports(userId: string): Promise<ReportEntity[]> {
     const report = await this.reportRepository.find({
       where: {
         user: {
@@ -198,7 +195,7 @@ export class ReportService {
     return report;
   }
 
-  private getTotalTaxFee(total: DealReport<Deal>['total']) {
+  private getTotalTaxFee(total: number) {
     if (total <= 0) {
       return 0;
     }
@@ -206,7 +203,7 @@ export class ReportService {
     return total * TAX_FEE;
   }
 
-  private getMilitaryFee(total: DealReport<Deal>['total']) {
+  private getMilitaryFee(total: number) {
     if (total <= 0) {
       return 0;
     }
