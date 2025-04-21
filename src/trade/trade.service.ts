@@ -10,6 +10,7 @@ import { reject, equals, mergeDeepWith, concat, isNotEmpty } from 'ramda';
 export class TradeService {
   private deals: Deal[] = [];
   private leftOvers: AccounAtStartType | null = null;
+  private accountAtStart: AccounAtStartType | null = null;
   private buyQueue: GroupedTrades | null = null;
   private trades: GroupedTrades | null = null;
   private shortPositions: Record<string, Trade[]> | null = {};
@@ -65,33 +66,42 @@ export class TradeService {
   }
 
   getTradesFromPreviousPeriod() {
-    return Object.keys(this.leftOvers).reduce((acc, ticker) => {
-      if (!this.trades[ticker] || !this.leftOvers[ticker]) return acc;
+    const tradesFromPreviousPeriod: GroupedTrades = {};
 
-      const trades = this.trades[ticker].reduceRight<Trade[]>(
-        (result, trade) => {
-          if (trade.operation === 'buy' && this.leftOvers[ticker] > 0) {
-            const quantity = Math.min(this.leftOvers[ticker], trade.quantity);
-            this.leftOvers[ticker] -= trade.quantity;
+    for (const ticker in this.leftOvers) {
+      if (
+        !tradesFromPreviousPeriod[ticker] &&
+        this.leftOvers[ticker] &&
+        this.trades[ticker]
+      ) {
+        tradesFromPreviousPeriod[ticker] = this.trades[ticker].reduceRight(
+          (acc, trade) => {
+            if (trade.operation === 'buy' && this.leftOvers[ticker] > 0) {
+              let quantity = 0;
 
-            const commission = this.processCommission(trade, quantity);
+              if (this.leftOvers[ticker] >= trade.quantity) {
+                quantity = trade.quantity;
+              } else {
+                quantity = this.leftOvers[ticker];
+              }
 
-            if (quantity) {
-              result.unshift({ ...trade, quantity, commission });
+              this.leftOvers[ticker] -= trade.quantity;
+
+              const commission = (trade.commission / trade.quantity) * quantity;
+
+              if (quantity > 0) {
+                acc.unshift({ ...trade, quantity, commission });
+              }
             }
-          }
 
-          return result;
-        },
-        [],
-      );
-
-      if (trades.length) {
-        acc[ticker] = trades;
+            return acc;
+          },
+          [] as Trade[],
+        );
       }
+    }
 
-      return acc;
-    }, {} as GroupedTrades);
+    return tradesFromPreviousPeriod;
   }
 
   getLefovers() {
@@ -111,10 +121,10 @@ export class TradeService {
   }
 
   async processTrades() {
-    for (const trade of Object.values(this.trades).flatMap(
-      (trades) => trades,
-    )) {
-      await this.processTrade(trade);
+    for (const ticker in this.trades) {
+      for (const trade of this.trades[ticker]) {
+        await this.processTrade(trade);
+      }
     }
   }
 
@@ -129,16 +139,28 @@ export class TradeService {
   async proccessSell(trade: Trade) {
     return isNotEmpty(this.buyQueue[trade.ticker])
       ? await this.processLongSell(trade)
-      : this.enqueShortPositions(trade);
+      : this.processShortSell(trade);
+  }
+
+  processShortSell(trade: Trade) {
+    if (!this.shortPositions[trade.ticker]) {
+      this.shortPositions[trade.ticker] = [];
+    }
+
+    this.shortPositions[trade.ticker]?.push(trade);
   }
 
   async processLongSell(sellTrade: Trade) {
-    while (sellTrade.quantity && this.buyQueue[sellTrade.ticker].length) {
+    while (
+      sellTrade.quantity > 0 &&
+      this.buyQueue[sellTrade.ticker].length > 0
+    ) {
       const buyTrade = this.buyQueue[sellTrade.ticker][0];
 
-      const quantityToSell = this.processQuantity(sellTrade, buyTrade.quantity);
+      const quantityToSell = Math.min(sellTrade.quantity, buyTrade.quantity);
 
-      const commision = this.processCommission(sellTrade, quantityToSell);
+      const commision =
+        (sellTrade.commission / sellTrade.quantity) * quantityToSell;
 
       buyTrade.quantity -= quantityToSell;
       sellTrade.quantity -= quantityToSell;
@@ -150,33 +172,40 @@ export class TradeService {
         commision,
       );
 
-      if (!buyTrade.quantity) {
-        this.dequeBuyQueue(buyTrade);
+      if (buyTrade.quantity === 0) {
+        this.buyQueue[sellTrade.ticker].shift();
       }
 
-      if (this.isShortPosition(buyTrade, sellTrade)) {
-        this.enqueShortPositions(sellTrade);
+      if (
+        buyTrade.quantity === 0 &&
+        sellTrade.quantity > 0 &&
+        !this.buyQueue[sellTrade.ticker].length
+      ) {
+        if (!this.shortPositions[sellTrade.ticker]) {
+          this.shortPositions[sellTrade.ticker] = [];
+        }
+
+        this.shortPositions[sellTrade.ticker]?.push(sellTrade);
       }
     }
   }
 
   async processBuy(buyTrade: Trade) {
-    // executes when buy trade occures and there are short positions in queue
     if (this.shortPositions[buyTrade.ticker]?.length > 0) {
       let remainingQuantity = buyTrade.quantity;
 
       while (
-        remainingQuantity &&
-        this.shortPositions[buyTrade.ticker]?.length
+        remainingQuantity > 0 &&
+        this.shortPositions[buyTrade.ticker]?.length > 0
       ) {
         const shortTrade = this.shortPositions[buyTrade.ticker][0];
 
-        const quantityToCover = this.processQuantity(
-          shortTrade,
+        const quantityToCover = Math.min(
           remainingQuantity,
+          shortTrade.quantity,
         );
-
-        const commision = this.processCommission(shortTrade, quantityToCover);
+        const commision =
+          (shortTrade.commission / shortTrade.quantity) * quantityToCover;
 
         shortTrade.quantity -= quantityToCover;
         remainingQuantity -= quantityToCover;
@@ -188,63 +217,19 @@ export class TradeService {
           commision,
         );
 
-        // If no remaining quantity of short trade, remove it from short positions queue
-        this.dequeShortPositions(shortTrade);
+        if (!shortTrade.quantity) {
+          this.shortPositions[buyTrade.ticker]?.shift();
+        }
       }
 
-      // If remaining quantity exists after short deal closed, add buy trade to buy queue
       if (remainingQuantity) {
-        this.enqueBuyQueue({ ...buyTrade, quantity: remainingQuantity });
+        this.buyQueue[buyTrade.ticker].push({
+          ...buyTrade,
+          quantity: remainingQuantity,
+        });
       }
     } else {
-      // If short position queue is empty, add buy trade to buy queue
-      this.enqueBuyQueue(buyTrade);
-    }
-  }
-
-  processCommission(trade: Trade, dealQuantity: number) {
-    const commission = (trade.commission / trade.quantity) * dealQuantity;
-
-    return commission;
-  }
-
-  processQuantity(trade: Trade, dealQuantity: number) {
-    const quantity = Math.min(trade.quantity, dealQuantity);
-
-    return quantity;
-  }
-
-  isShortPosition(buyTrade: Trade, sellTrade: Trade) {
-    return (
-      !buyTrade.quantity &&
-      sellTrade.quantity &&
-      !this.buyQueue[sellTrade.ticker].length
-    );
-  }
-
-  enqueBuyQueue(trade: Trade) {
-    if (!this.buyQueue[trade.ticker]) {
-      this.buyQueue[trade.ticker] = [];
-    }
-
-    this.buyQueue[trade.ticker].push(trade);
-  }
-
-  dequeBuyQueue(trade: Trade) {
-    this.buyQueue[trade.ticker]?.shift();
-  }
-
-  enqueShortPositions(trade: Trade) {
-    if (!this.shortPositions[trade.ticker]) {
-      this.shortPositions[trade.ticker] = [];
-    }
-
-    this.shortPositions[trade.ticker].push(trade);
-  }
-
-  dequeShortPositions(trade: Trade) {
-    if (!trade.quantity) {
-      this.shortPositions[trade.ticker]?.shift();
+      this.buyQueue[buyTrade.ticker].push(buyTrade);
     }
   }
 }

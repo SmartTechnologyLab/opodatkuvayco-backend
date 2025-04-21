@@ -349,11 +349,19 @@ export class ReportService {
   }
 
   async proccessSingleFileReport(files: Express.Multer.File[]) {
-    const { groupedTrades } = this.getTradesBySingleFile(files);
+    const { groupedTrades, accountAtStart } = this.getTradesBySingleFile(files);
 
     const tradeService = new TradeService(this.dealsService, {
       trades: groupedTrades,
     });
+
+    console.log(
+      'here',
+      tradeService.getNeededTradesFromPreviousPeriod(
+        groupedTrades,
+        accountAtStart,
+      ),
+    );
 
     const deals = await tradeService.getDeals();
 
@@ -376,39 +384,6 @@ export class ReportService {
     return { trades, leftOvers: tradeService.getLefovers() };
   }
 
-  processTradesFromPreviousPeriod(
-    files: Express.Multer.File[],
-    baseLeftOvers: Record<string, number>,
-  ): { trades: GroupedTrades; leftOvers: Record<string, number> } {
-    return files.reduce(
-      (acc, file, index) => {
-        if (index === 0) {
-          return this.getTradesFromPreviousPeriod([file], baseLeftOvers);
-        } else {
-          const { trades, leftOvers } = this.getTradesFromPreviousPeriod(
-            [file],
-            acc.leftOvers,
-          );
-
-          const mergedTrades: GroupedTrades = mergeDeepWith(
-            concat,
-            trades,
-            acc.trades,
-          );
-
-          return {
-            trades: mergedTrades,
-            leftOvers,
-          };
-        }
-      },
-      {} as {
-        leftOvers: Record<string, number>;
-        trades: GroupedTrades;
-      },
-    );
-  }
-
   async processMultipleFiles(files: Express.Multer.File[]) {
     const [, ...restFiles] = files;
 
@@ -423,9 +398,28 @@ export class ReportService {
       accountAtStart,
     );
 
-    const prevTrades = this.processTradesFromPreviousPeriod(
-      restFiles,
-      leftOvers,
+    const prevTrades = restFiles.reduce(
+      (acc, file, index) => {
+        if (index === 0) {
+          return this.getTradesFromPreviousPeriod([file], leftOvers);
+        } else {
+          const { trades, leftOvers } = this.getTradesFromPreviousPeriod(
+            [file],
+            acc.leftOvers,
+          );
+
+          const mergedTrades = mergeDeepWith(concat, trades, acc.trades);
+
+          return {
+            trades: mergedTrades,
+            leftOvers,
+          };
+        }
+      },
+      {} as {
+        leftOvers: Record<string, number>;
+        trades: GroupedTrades;
+      },
     );
 
     if (Object.values(leftOvers).some((value) => value > 0)) {
@@ -433,6 +427,51 @@ export class ReportService {
     }
 
     tradeService.setTrades(prevTrades.trades);
+
+    const deals = await tradeService.getDeals();
+
+    return this.getSummary(deals);
+  }
+
+  async processMultipleFiless(files: Express.Multer.File[]) {
+    const [, ...restFiles] = files;
+
+    const prevTrades = restFiles.reduce(
+      (acc, file, index) => {
+        if (index === 0) {
+          return this.getTradesFromPreviousPeriod([file]);
+        } else {
+          const { trades, leftOvers } = this.getTradesFromPreviousPeriod(
+            [file],
+            acc.leftOvers,
+          );
+
+          // console.log(trades, acc.trades);
+
+          const mergedTrades = mergeDeepWith(concat, trades, acc.trades);
+
+          return {
+            trades: mergedTrades,
+            leftOvers,
+          };
+        }
+      },
+      {} as {
+        leftOvers: Record<string, number>;
+        trades: GroupedTrades;
+      },
+    );
+
+    // console.log(prevTrades);
+
+    const { groupedTrades, accountAtEnd } = this.getTradesBySingleFile(files);
+
+    const trades = mergeDeepWith(concat, prevTrades.trades, groupedTrades);
+
+    const tradeService = new TradeService(this.dealsService, {
+      trades,
+      leftOvers: accountAtEnd,
+    });
 
     const deals = await tradeService.getDeals();
 
