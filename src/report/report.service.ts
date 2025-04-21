@@ -164,24 +164,6 @@ export class ReportService {
     return report;
   }
 
-  async processDemoReport({
-    file,
-    stockExhange,
-  }: {
-    file: Express.Multer.File;
-    stockExhange: StockExchangeEnum;
-  }) {
-    const { groupedTrades } = this.getTradesReport(file, stockExhange);
-
-    const tradeService = new TradeService(this.dealsService, {
-      trades: groupedTrades,
-    });
-
-    const deals = await tradeService.getDemoTrades();
-
-    return deals;
-  }
-
   async getReports(userId: User['id']) {
     return await this.reportRepositoryService.getReports(userId);
   }

@@ -110,22 +110,6 @@ export class TradeService {
     return this.deals;
   }
 
-  async getDemoTrades() {
-    await this.processDemoTrades();
-
-    return this.deals;
-  }
-
-  async processDemoTrades() {
-    for (const trade of Object.values(this.trades).flatMap(
-      (trades) => trades,
-    )) {
-      if (this.deals.length < 3) {
-        await this.processTrade(trade);
-      }
-    }
-  }
-
   async processTrades() {
     for (const trade of Object.values(this.trades).flatMap(
       (trades) => trades,
