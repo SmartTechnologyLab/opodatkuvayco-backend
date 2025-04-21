@@ -9,19 +9,43 @@ import {
 } from './types/interfaces/report.interface';
 import { MILITARY_FEE, TAX_FEE } from './consts/tax-fee-percentages';
 import { DealsService } from '../deals/deals.service';
+import { Report as ReportEntity } from 'src/report/entities/report.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
 import { TradeService } from 'src/trade/trade.service';
 import { mergeDeepWith, concat, pipe, map, sort } from 'ramda';
-import { ReportRepositoryService } from './reportRepository.service';
 
 @Injectable()
 export class ReportService {
   constructor(
-    private reportRepositoryService: ReportRepositoryService,
+    @InjectRepository(ReportEntity)
+    private reportRepository: Repository<ReportEntity>,
     private normalizeReportsService: NormalizeReportsService,
     private dealsService: DealsService,
   ) {}
+
+  private async saveReport(
+    report: DealReport<Deal>,
+    user: User,
+  ): Promise<ReportEntity> {
+    try {
+      const deals = await this.dealsService.saveDeals(report.deals, user);
+
+      const newReport = new ReportEntity();
+
+      newReport.total = report.total;
+      newReport.totalMilitaryFee = report.totalMilitaryFee;
+      newReport.totalTaxFee = report.totalTaxFee;
+      newReport.deals = deals;
+      newReport.user = user;
+
+      return this.reportRepository.save(newReport);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 
   getTradesReport(file: Express.Multer.File, stockExchange: StockExchangeEnum) {
     const { trades, accountAtStart, accountAtEnd, dateStart } =
@@ -156,16 +180,22 @@ export class ReportService {
 
     const deals = await tradeService.getDeals();
 
-    const report = await this.reportRepositoryService.saveReport(
-      this.getSummary(deals),
-      user,
-    );
+    const report = await this.saveReport(this.getSummary(deals), user);
 
     return report;
   }
 
-  async getReports(userId: User['id']) {
-    return await this.reportRepositoryService.getReports(userId);
+  async getReports(userId: User['id']): Promise<ReportEntity[]> {
+    const report = await this.reportRepository.find({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: ['deals', 'deals.purchase', 'deals.sale'],
+    });
+
+    return report;
   }
 
   private getTotalTaxFee(total: DealReport<Deal>['total']) {
