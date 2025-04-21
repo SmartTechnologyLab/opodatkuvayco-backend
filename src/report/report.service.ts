@@ -349,19 +349,11 @@ export class ReportService {
   }
 
   async proccessSingleFileReport(files: Express.Multer.File[]) {
-    const { groupedTrades, accountAtStart } = this.getTradesBySingleFile(files);
+    const { groupedTrades } = this.getTradesBySingleFile(files);
 
     const tradeService = new TradeService(this.dealsService, {
       trades: groupedTrades,
     });
-
-    console.log(
-      'here',
-      tradeService.getNeededTradesFromPreviousPeriod(
-        groupedTrades,
-        accountAtStart,
-      ),
-    );
 
     const deals = await tradeService.getDeals();
 
@@ -372,14 +364,16 @@ export class ReportService {
     files: Express.Multer.File[],
     leftOvers?: Record<string, number>,
   ) {
-    const { groupedTrades } = this.getTradesBySingleFile(files);
+    const { groupedTrades, accountAtEnd } = this.getTradesBySingleFile(files);
 
     const tradeService = new TradeService(this.dealsService, {
       trades: groupedTrades,
-      leftOvers,
+      leftOvers: accountAtEnd,
     });
 
     const trades = tradeService.getTradesFromPreviousPeriod();
+
+    console.log(trades, leftOvers ? leftOvers : accountAtEnd);
 
     return { trades, leftOvers: tradeService.getLefovers() };
   }
@@ -387,82 +381,33 @@ export class ReportService {
   async processMultipleFiles(files: Express.Multer.File[]) {
     const [, ...restFiles] = files;
 
-    const { groupedTrades, accountAtStart } = this.getTradesBySingleFile(files);
+    // const prevTrades = restFiles.reduce(
+    //   (acc, file, index) => {
+    //     if (index === 0) {
+    //       const prevTradesResult = this.getTradesFromPreviousPeriod([file]);
+    //       return prevTradesResult;
+    //     } else {
+    //       const { trades, leftOvers } = this.getTradesFromPreviousPeriod(
+    //         [file],
+    //         acc.leftOvers,
+    //       );
 
-    const tradeService = new TradeService(this.dealsService, {
-      trades: groupedTrades,
-    });
+    //       const mergedTrades = mergeDeepWith(concat, trades, acc.trades);
 
-    const leftOvers = tradeService.getNeededTradesFromPreviousPeriod(
-      groupedTrades,
-      accountAtStart,
-    );
+    //       return {
+    //         trades: mergedTrades,
+    //         leftOvers,
+    //       };
+    //     }
+    //   },
+    //   {} as {
+    //     leftOvers: Record<string, number>;
+    //     trades: GroupedTrades;
+    //   },
+    // );
 
-    const prevTrades = restFiles.reduce(
-      (acc, file, index) => {
-        if (index === 0) {
-          return this.getTradesFromPreviousPeriod([file], leftOvers);
-        } else {
-          const { trades, leftOvers } = this.getTradesFromPreviousPeriod(
-            [file],
-            acc.leftOvers,
-          );
-
-          const mergedTrades = mergeDeepWith(concat, trades, acc.trades);
-
-          return {
-            trades: mergedTrades,
-            leftOvers,
-          };
-        }
-      },
-      {} as {
-        leftOvers: Record<string, number>;
-        trades: GroupedTrades;
-      },
-    );
-
-    if (Object.values(leftOvers).some((value) => value > 0)) {
-      throw new BadRequestException('Not enough buy deals');
-    }
-
-    tradeService.setTrades(prevTrades.trades);
-
-    const deals = await tradeService.getDeals();
-
-    return this.getSummary(deals);
-  }
-
-  async processMultipleFiless(files: Express.Multer.File[]) {
-    const [, ...restFiles] = files;
-
-    const prevTrades = restFiles.reduce(
-      (acc, file, index) => {
-        if (index === 0) {
-          return this.getTradesFromPreviousPeriod([file]);
-        } else {
-          const { trades, leftOvers } = this.getTradesFromPreviousPeriod(
-            [file],
-            acc.leftOvers,
-          );
-
-          // console.log(trades, acc.trades);
-
-          const mergedTrades = mergeDeepWith(concat, trades, acc.trades);
-
-          return {
-            trades: mergedTrades,
-            leftOvers,
-          };
-        }
-      },
-      {} as {
-        leftOvers: Record<string, number>;
-        trades: GroupedTrades;
-      },
-    );
-
-    // console.log(prevTrades);
+    const prevTrades = this.getTradesFromPreviousPeriod(restFiles);
+    // const prevGroupedTrades = this
 
     const { groupedTrades, accountAtEnd } = this.getTradesBySingleFile(files);
 

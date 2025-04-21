@@ -5,7 +5,6 @@ import {
   GroupedTrades,
   Trade,
 } from 'src/report/types/interfaces/trade.interface';
-import { reject, equals, mergeDeepWith, concat, isNotEmpty } from 'ramda';
 
 export class TradeService {
   private deals: Deal[] = [];
@@ -13,7 +12,7 @@ export class TradeService {
   private accountAtStart: AccounAtStartType | null = null;
   private buyQueue: GroupedTrades | null = null;
   private trades: GroupedTrades | null = null;
-  private shortPositions: Record<string, Trade[]> | null = {};
+  private shortPositions: Trade[] = [];
 
   constructor(
     private dealService: DealsService,
@@ -36,45 +35,12 @@ export class TradeService {
     }
   }
 
-  setTrades(newTrades: GroupedTrades) {
-    this.trades = mergeDeepWith(concat, newTrades, this.trades);
-  }
-
-  sumSellTradesQuantity(trade: Trade, quantity: number) {
-    return trade.operation === 'sell' ? trade.quantity : quantity;
-  }
-
-  // Getting total trades quantity that have to take from previous period
-  getNeededTradesFromPreviousPeriod(
-    trades: GroupedTrades,
-    accountAtStart: AccounAtStartType,
-  ) {
-    const neededTradesMap: Record<string, number> = {};
-
-    for (const ticker in trades) {
-      if (accountAtStart[ticker]) {
-        const totalSell = trades[ticker].reduce(
-          (acc, trade) => this.sumSellTradesQuantity(trade, acc),
-          0,
-        );
-
-        neededTradesMap[ticker] = Math.min(accountAtStart[ticker], totalSell);
-      }
-    }
-
-    return reject(equals(0), neededTradesMap);
-  }
-
   getTradesFromPreviousPeriod() {
     const tradesFromPreviousPeriod: GroupedTrades = {};
 
     for (const ticker in this.leftOvers) {
-      if (
-        !tradesFromPreviousPeriod[ticker] &&
-        this.leftOvers[ticker] &&
-        this.trades[ticker]
-      ) {
-        tradesFromPreviousPeriod[ticker] = this.trades[ticker].reduceRight(
+      if (!tradesFromPreviousPeriod[ticker]) {
+        tradesFromPreviousPeriod[ticker] = this.trades[ticker]?.reduceRight(
           (acc, trade) => {
             if (trade.operation === 'buy' && this.leftOvers[ticker] > 0) {
               let quantity = 0;
@@ -89,9 +55,7 @@ export class TradeService {
 
               const commission = (trade.commission / trade.quantity) * quantity;
 
-              if (quantity > 0) {
-                acc.unshift({ ...trade, quantity, commission });
-              }
+              acc.unshift({ ...trade, commission, quantity });
             }
 
             return acc;
@@ -122,9 +86,11 @@ export class TradeService {
 
   async processTrades() {
     for (const ticker in this.trades) {
-      for (const trade of this.trades[ticker]) {
-        await this.processTrade(trade);
-      }
+      await Promise.all(
+        this.trades[ticker].map(
+          async (trade) => await this.processTrade(trade),
+        ),
+      );
     }
   }
 
@@ -137,17 +103,15 @@ export class TradeService {
   }
 
   async proccessSell(trade: Trade) {
-    return isNotEmpty(this.buyQueue[trade.ticker])
-      ? await this.processLongSell(trade)
-      : this.processShortSell(trade);
+    if (this.buyQueue[trade.ticker].length > 0) {
+      await this.processLongSell(trade);
+    } else {
+      this.processShortSell(trade);
+    }
   }
 
   processShortSell(trade: Trade) {
-    if (!this.shortPositions[trade.ticker]) {
-      this.shortPositions[trade.ticker] = [];
-    }
-
-    this.shortPositions[trade.ticker]?.push(trade);
+    this.shortPositions.push(trade);
   }
 
   async processLongSell(sellTrade: Trade) {
@@ -175,30 +139,15 @@ export class TradeService {
       if (buyTrade.quantity === 0) {
         this.buyQueue[sellTrade.ticker].shift();
       }
-
-      if (
-        buyTrade.quantity === 0 &&
-        sellTrade.quantity > 0 &&
-        !this.buyQueue[sellTrade.ticker].length
-      ) {
-        if (!this.shortPositions[sellTrade.ticker]) {
-          this.shortPositions[sellTrade.ticker] = [];
-        }
-
-        this.shortPositions[sellTrade.ticker]?.push(sellTrade);
-      }
     }
   }
 
   async processBuy(buyTrade: Trade) {
-    if (this.shortPositions[buyTrade.ticker]?.length > 0) {
+    if (this.shortPositions.length > 0) {
       let remainingQuantity = buyTrade.quantity;
 
-      while (
-        remainingQuantity > 0 &&
-        this.shortPositions[buyTrade.ticker]?.length > 0
-      ) {
-        const shortTrade = this.shortPositions[buyTrade.ticker][0];
+      while (remainingQuantity > 0 && this.shortPositions.length > 0) {
+        const shortTrade = this.shortPositions[0];
 
         const quantityToCover = Math.min(
           remainingQuantity,
@@ -218,7 +167,7 @@ export class TradeService {
         );
 
         if (!shortTrade.quantity) {
-          this.shortPositions[buyTrade.ticker]?.shift();
+          this.shortPositions.shift();
         }
       }
 
