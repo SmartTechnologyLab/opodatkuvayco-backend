@@ -12,17 +12,22 @@ import {
 } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtGuard } from '../auth/guards/jwt.quard';
 import { Deal } from './types/interfaces/deal.interface';
 import { DealReport } from './types/interfaces/deal-report.interface';
 import { ReportDealsDto } from './dto/report-deals.dto';
 import { Report } from './entities/report.entity';
+import { DealService } from './trade.service';
+import { DealsService } from 'src/deals/deals.service';
 
 @ApiTags('Report')
 @Controller('report')
 export class ReportController {
-  constructor(private reportService: ReportService) {}
+  constructor(
+    private reportService: ReportService,
+    private dealsService: DealsService,
+  ) {}
 
   @UseGuards(JwtGuard)
   @Get('GetReports')
@@ -74,5 +79,33 @@ export class ReportController {
     } catch (error) {
       throw new Error(error);
     }
+  }
+
+  @Post('Test')
+  @ApiBody({
+    description: 'Loading trades report in JSON format for getting deals',
+    required: true,
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'JSON file containing trades report',
+        },
+      },
+    },
+  })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('file', 10))
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async test(@UploadedFiles() files: Express.Multer.File[]) {
+    const groupedTrades = await this.reportService.test(files);
+
+    const dealService = new DealService(this.dealsService, groupedTrades);
+
+    await dealService.processTrades();
+
+    return dealService.deals;
   }
 }
