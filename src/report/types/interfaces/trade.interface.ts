@@ -9,3 +9,5 @@ export interface Trade {
   ticker: string;
   currency: string;
 }
+
+export type GroupedTrades = Record<Trade['ticker'], Trade[]>;
