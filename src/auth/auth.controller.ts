@@ -50,9 +50,9 @@ export class AuthController {
     return tokens;
   }
 
-  @Post('confirm-email')
-  async confirmEmail(@Query('token') token: string) {
-    return await this.authService.confirmEmail(token);
+  @Get('confirm-email')
+  async confirmEmail(@Res() res: Response, @Query('token') token: string) {
+    return await this.authService.confirmEmail(res, token);
   }
 
   @Get('google')
