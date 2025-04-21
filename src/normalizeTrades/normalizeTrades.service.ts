@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { IbkrTrade } from 'src/report/normalizeReports/types/interfaces/ibkr.interface';
+import { IbkrTrade } from 'src/normalizeReports/types/interfaces/ibkr.interface';
 import { Trade } from 'src/report/types/interfaces/trade.interface';
-import { FreedomFinanceTrade } from 'src/report/normalizeReports/types/interfaces/freedomFinance.interface';
-import { StockExchangeType } from 'src/report/normalizeReports/types/types/stock-exchange.type';
+import { FreedomFinanceTrade } from 'src/normalizeReports/types/interfaces/freedomFinance.interface';
+import { StockExchangeType } from 'src/normalizeReports/types/types/stock-exchange.type';
 import { StockExchangeEnum } from './constants/enums';
 import { TradesByStockExchange } from './types/types/stockExchange';
 

@@ -1,7 +1,7 @@
-import { FileType } from 'src/report/reportReader/types';
-import { StockExchangeEnum } from 'src/report/normalizeTrades/constants/enums';
+import { FileType } from 'src/reportReader/types';
+import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
 import { IsEnum, IsNotEmpty } from 'class-validator';
-import { FileTypeEnum } from 'src/report/reportReader/consts';
+import { FileTypeEnum } from 'src/reportReader/consts';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ReportDealsDto {

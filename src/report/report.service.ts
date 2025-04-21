@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { NormalizeReportsService } from 'src/report/normalizeReports/normalizeReports.service';
+import { NormalizeReportsService } from '../normalizeReports/normalizeReports.service';
 import { GroupedTrades } from './types/interfaces/trade.interface';
 import { DealReport } from './types/interfaces/deal-report.interface';
 import { Deal } from './types/interfaces/deal.interface';
@@ -10,8 +10,8 @@ import {
 import { MILITARY_FEE, TAX_FEE } from './consts/tax-fee-percentages';
 import { DealsService } from '../deals/deals.service';
 import { User } from 'src/user/entities/user.entity';
-import { StockExchangeEnum } from 'src/report/normalizeTrades/constants/enums';
-import { TradeService } from 'src/report/trade/trade.service';
+import { StockExchangeEnum } from 'src/normalizeTrades/constants/enums';
+import { TradeService } from 'src/trade/trade.service';
 import { mergeDeepWith, concat, pipe, map, sort } from 'ramda';
 import { ReportRepositoryService } from './reportRepository.service';
 
