@@ -43,7 +43,7 @@ export class TradeService {
     return trade.operation === 'sell' ? trade.quantity : quantity;
   }
 
-  // Getting total trades quantity that have to be taken from previous period
+  // Getting total trades quantity that have to take from previous period
   getNeededTradesFromPreviousPeriod(
     trades: GroupedTrades,
     accountAtStart: AccounAtStartType,
@@ -154,18 +154,12 @@ export class TradeService {
         this.dequeBuyQueue(buyTrade);
       }
 
-      // If sell trade has more quantity than buy trade, we need to add it to short positions queue since buy quantity remained more than 0
       if (this.isShortPosition(buyTrade, sellTrade)) {
         this.enqueShortPositions(sellTrade);
       }
     }
   }
 
-  // Proccessing buy trade with two possible scenarios:
-  // If there are no short positions in queue, we add buy trade to buy queue
-  // if there are short positions in queue we close them or partially close
-  // For example: MSFT ticker has 1 short position with quantity 10 and buy trade with quantity 5
-  // In this case we close short positions with quantity 5 and calculating 10 - 5 = 5 of remaining short position
   async processBuy(buyTrade: Trade) {
     // executes when buy trade occures and there are short positions in queue
     if (this.shortPositions[buyTrade.ticker]?.length > 0) {
@@ -220,7 +214,6 @@ export class TradeService {
     return quantity;
   }
 
-  // To check if current trade is short position that were processed in long sell and quantity of sell trade remained
   isShortPosition(buyTrade: Trade, sellTrade: Trade) {
     return (
       !buyTrade.quantity &&
