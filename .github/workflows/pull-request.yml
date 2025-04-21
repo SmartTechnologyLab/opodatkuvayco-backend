@@ -89,10 +89,7 @@ jobs:
   build:
     needs: [lint, type_check]
     runs-on: ubuntu-latest
-    environment: dev
     steps:
-      - name: Check GOOGLE CLIENT
-        run: echo "GOOGLE ClIENT=$${{ secrets.GOOGLE_AUTH_CLIENT_ID }}"
       - name: Checkout
         uses: actions/checkout@v4
       - name: Cache dependencies
