@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   Req,
   Request,
   UploadedFiles,
@@ -17,6 +18,7 @@ import { ApiBody, ApiConsumes, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { JwtGuard } from '../auth/guards/jwt.quard';
 import { Report } from './entities/report.entity';
 import { UserRequest } from 'src/auth/types/userRequest';
+import { ReportDealsDto } from './dto/report-deals.dto';
 
 @ApiTags('Report')
 @Controller('report')
@@ -33,7 +35,7 @@ export class ReportController {
     return this.reportService.getReports(req.user.id);
   }
 
-  @UseGuards(JwtGuard)
+  // @UseGuards(JwtGuard)
   @Post('create-report')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
@@ -76,7 +78,12 @@ export class ReportController {
   async processMultipleFiles(
     @UploadedFiles() files: Express.Multer.File[],
     @Req() req: UserRequest,
+    @Query() query: ReportDealsDto,
   ) {
-    return await this.reportService.processMultipleFiles(files, req.user);
+    return await this.reportService.processMultipleFiles({
+      files,
+      user: req.user,
+      stockExchange: query.stockExchange,
+    });
   }
 }
