@@ -15,7 +15,6 @@ import { DealsModule } from 'src/deals/deals.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Report } from './entities/report.entity';
 import { TradeModule } from 'src/trade/trade.module';
-import { ReportRepositoryService } from './reportRepository.service';
 
 @Module({
   imports: [
@@ -33,7 +32,6 @@ import { ReportRepositoryService } from './reportRepository.service';
   controllers: [ReportController],
   providers: [
     ReportService,
-    ReportRepositoryService,
     CurrencyRateService,
     NormalizeTradesService,
     NormalizeReportsService,
