@@ -61,7 +61,7 @@ export class AuthService {
         newUser.confirmationToken,
       );
 
-      return newUser;
+      return this.userService.toUserDto(newUser);
     }
   }
 
@@ -87,7 +87,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async confirmEmail(token: string) {
+  async confirmEmail(@Res() res: Response, token: string) {
     const user = await this.userService.findUserByConfimationToken(token);
 
     if (!user) {
@@ -98,6 +98,8 @@ export class AuthService {
       confirmationToken: null,
       emailConfirmed: true,
     });
+
+    res.redirect(this.configService.get('CLIENT_URL'));
   }
 
   generateTokensFor2Fa(

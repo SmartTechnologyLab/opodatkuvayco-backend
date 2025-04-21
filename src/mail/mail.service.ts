@@ -17,6 +17,7 @@ export class MailService {
     const confirmationUrl = this.confirmEmailendPoint(token);
 
     await this.mailerService.sendMail({
+      from: this.configService.get('MAIL_ADRESS'),
       to: email,
       subject: 'Confirm your email',
       html: `<div><a href="${confirmationUrl}">Confirm your email</a></div>`,
