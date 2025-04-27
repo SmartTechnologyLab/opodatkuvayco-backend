@@ -122,7 +122,6 @@ export class ReportService {
 
   async processMultipleFiles({
     files,
-    user,
     stockExchange,
   }: {
     files: Express.Multer.File[];
@@ -156,12 +155,7 @@ export class ReportService {
 
     const deals = await tradeService.getDeals();
 
-    const report = await this.reportRepositoryService.saveReport(
-      this.getSummary(deals),
-      user,
-    );
-
-    return report;
+    return this.getSummary(deals);
   }
 
   async processDemoReport({
