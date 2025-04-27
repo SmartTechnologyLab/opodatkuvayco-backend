@@ -7,7 +7,6 @@ import { User } from 'src/user/entities/user.entity';
 @Injectable()
 export class GoogleOAuthStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private readonly configService: ConfigService) {
-    console.log('GOOGLE CLIENT ID', configService.get('GOOGLE_AUTH_CLIENT_ID'));
     super({
       clientID: configService.get('GOOGLE_AUTH_CLIENT_ID'),
       clientSecret: configService.get('GOOGLE_AUTH_CLIENT_SECRET'),
