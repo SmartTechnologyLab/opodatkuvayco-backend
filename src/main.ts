@@ -24,7 +24,10 @@ async function bootstrap() {
   );
 
   // Get allowed origins from environment variables
-  const allowedOrigins = configService.get<string>('CLIENT_URL');
+  const allowedOriginsEnv = configService.get<string>('CLIENT_URL');
+  const allowedOrigins = allowedOriginsEnv
+    ? allowedOriginsEnv.split(',').map((origin) => origin.trim())
+    : [];
   // Get host and port from environment variables
   const host = configService.get<string>('HOST') || '0.0.0.0';
   const port = parseInt(configService.get<string>('PORT'), 10) || 3000;
